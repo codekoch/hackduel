@@ -220,7 +220,7 @@
                     this.humOsc = this.ctx.createOscillator();
                     this.humGain = this.ctx.createGain();
                     this.humOsc.type = 'sawtooth';
-                    this.humOsc.frequency.value = 444; // Low hum
+                    this.humOsc.frequency.value = 144; // Low hum
                     this.humGain.gain.value = 0;
                     this.humOsc.connect(this.humGain);
                     this.humGain.connect(this.ctx.destination);
