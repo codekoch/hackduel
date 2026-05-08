@@ -157,11 +157,30 @@ document.addEventListener('touchend', function (event) {
  */
 const AudioSys = {
     ctx: null,
+    humOsc: null,
+    humGain: null,
     init: function() {
         if(!this.ctx) {
             this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            this.humOsc = this.ctx.createOscillator();
+            this.humGain = this.ctx.createGain();
+            this.humOsc.type = 'sawtooth';
+            this.humOsc.frequency.value = 55; // Low hum
+            this.humGain.gain.value = 0;
+            this.humOsc.connect(this.humGain);
+            this.humGain.connect(this.ctx.destination);
+            this.humOsc.start();
         }
         if(this.ctx.state === 'suspended') this.ctx.resume();
+    },
+    setHum: function(active) {
+        if (!this.ctx || !this.humGain || this.ctx.state !== 'running') return;
+        const now = this.ctx.currentTime;
+        if (active) {
+            this.humGain.gain.setTargetAtTime(0.04, now, 0.1); // Leises Surren
+        } else {
+            this.humGain.gain.setTargetAtTime(0, now, 0.1);
+        }
     },
     play: function(type) {
         if(!this.ctx || this.ctx.state !== 'running') return;
@@ -367,6 +386,7 @@ function resetGame(advanceRound = false) {
     
     AudioSys.init();
     AudioSys.play('start');
+    AudioSys.setHum(false);
     updateUI();
 }
 
@@ -508,6 +528,7 @@ function update(dt) {
             state.timer = 0;
             updateUI();
             buildPulses();
+            AudioSys.setHum(true);
         } else updateUI();
     } 
     else if (state.phase === 'simulating') {
@@ -515,7 +536,10 @@ function update(dt) {
         if (state.animTick >= CONFIG.ticksPerStep) {
             state.animTick = 0;
             executeSimulationStep();
-            if (state.activePulses.filter(p => !p.dead).length === 0) endGame();
+            if (state.activePulses.filter(p => !p.dead).length === 0) {
+                AudioSys.setHum(false);
+                endGame();
+            }
             updateUI();
         }
     }
