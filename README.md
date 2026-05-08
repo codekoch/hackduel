@@ -1,1 +1,1 @@
-# <a href=h"ttps://codekoch.github.io/hackduel"> Hack Duel </a>
+# <a href="https://codekoch.github.io/hackduel"> Hack Duel </a>
