@@ -55,7 +55,7 @@
     <!-- UI Header -->
     <div class="w-full max-w-[1250px] flex justify-between items-start px-2 md:px-4 shrink-0 z-10 pt-2">
         <div class="flex flex-col items-start w-[30%]">
-            <h2 class="text-lg md:text-3xl glow-text-p1 font-bold leading-tight">SPIELER 1 <span class="hidden lg:inline"></span></h2>
+            <h2 class="text-lg md:text-3xl glow-text-p1 font-bold leading-tight">SPIELER 1 <span id="p1-crown" class="hidden text-yellow-500 drop-shadow-[0_0_5px_rgba(255,200,0,0.8)]">👑</span></h2>
             <p class="text-[10px] md:text-xs text-gray-400 mt-1 hidden sm:block">Bewegen: W/S (oder Touch)</p>
             <p class="text-[10px] md:text-xs text-gray-400 hidden sm:block">Setzen/Entf: D/A</p>
             <div class="text-sm md:text-2xl mt-1 md:mt-2">Impulse: <span id="ui-p1-pulses" class="text-white font-bold">6</span> <span class="hidden md:inline">/ 6</span></div>
@@ -73,7 +73,7 @@
         </div>
 
         <div class="flex flex-col items-end w-[30%] text-right">
-            <h2 class="text-lg md:text-3xl glow-text-p2 font-bold leading-tight"><span class="hidden lg:inline">SPIELER 2</span><span class="lg:hidden">SPIELER 2</span></h2>
+            <h2 class="text-lg md:text-3xl glow-text-p2 font-bold leading-tight"><span id="p2-crown" class="hidden text-yellow-500 drop-shadow-[0_0_5px_rgba(255,200,0,0.8)]">👑</span> SPIELER 2</h2>
             <p class="text-[10px] md:text-xs text-gray-400 mt-1 hidden sm:block">Bewegen: PFEILE (Touch)</p>
             <p class="text-[10px] md:text-xs text-gray-400 hidden sm:block">Setzen/Entf: LI/RE</p>
             <div class="text-sm md:text-2xl mt-1 md:mt-2">Impulse: <span id="ui-p2-pulses" class="text-white font-bold">6</span> <span class="hidden md:inline">/ 6</span></div>
@@ -131,23 +131,7 @@
             </div>
         </div>
 
-        <!-- End Game Overlay -->
-        <div id="overlay-msg" class="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px] hidden rounded-lg z-20">
-            <div class="text-center p-6 md:p-8 border-2 border-gray-600 bg-gray-900/95 rounded-xl shadow-[0_0_50px_rgba(0,0,0,1)] relative flex flex-col items-center w-[90%] md:min-w-[500px] md:w-auto">
-                <button onclick="document.getElementById('overlay-msg').classList.add('hidden')" class="absolute top-1 md:top-2 right-3 md:right-4 text-gray-400 hover:text-white text-3xl leading-none">&times;</button>
-                <h2 id="overlay-title" class="text-4xl md:text-6xl mb-2 md:mb-4 glow-text-neutral">GEWINNER</h2>
-                <p id="overlay-subtitle" class="text-lg md:text-2xl text-gray-300 mb-6 md:mb-8 leading-relaxed">System übernommen.</p>
-                
-                <div class="flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-4 w-full justify-center">
-                    <button onclick="document.getElementById('overlay-msg').classList.add('hidden')" class="px-4 py-2 md:px-6 md:py-3 bg-transparent border-2 border-gray-400 text-gray-300 hover:bg-gray-800 hover:text-white transition-all text-base md:text-xl font-bold rounded">
-                        Spielfeld ansehen
-                    </button>
-                    <button onclick="resetGame(true)" class="px-4 py-2 md:px-6 md:py-3 bg-gray-800 border-2 border-white hover:bg-white hover:text-black transition-all text-base md:text-xl font-bold rounded shadow-[0_0_15px_rgba(255,255,255,0.5)]">
-                        NÄCHSTES DUELL
-                    </button>
-                </div>
-            </div>
-        </div>
+        <!-- End Game Overlay Removed -->
     </div>
 
 <script>
@@ -258,7 +242,9 @@ let state = {
     cores: Array(CONFIG.rows).fill(0), // Speichert jetzt die HP (-2 bis +2) 
     coreMaxHits: Array(CONFIG.rows).fill(1), // Max HP pro Kern
     particles: [],
-    animTick: 0
+    animTick: 0,
+    lastWinTitle: "",
+    lastWinColor: ""
 };
 
 /**
@@ -372,10 +358,11 @@ function resetGame(advanceRound = false) {
 
     state.particles = [];
     state.animTick = 0;
+    state.lastWinTitle = "";
+    state.lastWinColor = "";
     
     initBoard();
     
-    document.getElementById('overlay-msg').classList.add('hidden');
     document.getElementById('ui-timer').classList.remove('hidden');
     
     AudioSys.init();
@@ -690,27 +677,19 @@ function endGame() {
     state.p1.totalScore += score1;
     state.p2.totalScore += score2;
 
-    let title = "", subRound = "", titleClass = "";
-
     if (score1 > score2) {
-        title = "SPIELER 1 GEWINNT"; subRound = `Ergebnis: ${score1} zu ${score2} Kerne.`; titleClass = "glow-text-p1";
+        state.lastWinTitle = "SPIELER 1 GEWINNT!";
+        state.lastWinColor = CONFIG.colors.p1;
     } else if (score2 > score1) {
-        title = "SPIELER 2 GEWINNT"; subRound = `Ergebnis: ${score2} zu ${score1} Kerne.`; titleClass = "glow-text-p2";
+        state.lastWinTitle = "SPIELER 2 GEWINNT!";
+        state.lastWinColor = CONFIG.colors.p2;
     } else {
-        title = "UNENTSCHIEDEN"; subRound = `Keiner übernimmt die Kontrolle (${score1} zu ${score2}).`; titleClass = "glow-text-neutral";
+        state.lastWinTitle = "UNENTSCHIEDEN!";
+        state.lastWinColor = "#ffffff";
     }
 
-    let leaderText = "";
-    if (state.p1.totalScore > state.p2.totalScore) leaderText = `Spieler 1 führt insgesamt mit ${state.p1.totalScore} zu ${state.p2.totalScore} Punkten.`;
-    else if (state.p2.totalScore > state.p1.totalScore) leaderText = `Spieler 2 führt insgesamt mit ${state.p2.totalScore} zu ${state.p1.totalScore} Punkten.`;
-    else leaderText = `Gleichstand insgesamt: ${state.p1.totalScore} zu ${state.p2.totalScore} Punkten.`;
-
-    const titleEl = document.getElementById('overlay-title');
-    titleEl.innerText = title; titleEl.className = `text-4xl md:text-6xl mb-2 md:mb-4 font-bold tracking-wider ${titleClass}`;
-    document.getElementById('overlay-subtitle').innerHTML = `${subRound}<br><br><span class="text-yellow-400 font-bold text-lg md:text-3xl block p-2 bg-gray-900 border border-yellow-600 rounded">${leaderText}</span>`;
-    document.getElementById('overlay-msg').classList.remove('hidden');
-    document.getElementById('ui-status').innerHTML = "VERBINDUNG GETRENNT<br><button onclick='resetGame(true)' class='mt-1 text-xs md:text-sm text-white underline hover:text-yellow-300'>NÄCHSTES DUELL STARTEN</button>";
-    document.getElementById('ui-status').className = "text-sm md:text-xl text-gray-400 font-bold bg-gray-900 px-2 py-1 md:px-6 md:py-2 rounded-lg border border-gray-600 shadow-none text-center leading-tight";
+    document.getElementById('ui-status').innerHTML = "VERBINDUNG GETRENNT<br><button onclick='resetGame(true)' class='mt-1 px-4 py-1 text-xs md:text-sm text-black bg-white hover:bg-yellow-400 rounded font-bold transition-colors cursor-pointer pointer-events-auto'>NÄCHSTES DUELL STARTEN</button>";
+    document.getElementById('ui-status').className = "text-sm md:text-xl text-gray-400 font-bold bg-gray-900 px-2 py-1 md:px-6 md:py-2 rounded-lg border border-gray-600 shadow-none text-center leading-tight z-50 relative pointer-events-auto";
     
     updateUI();
 }
@@ -739,6 +718,17 @@ function updateUI() {
     } else if (state.phase === 'simulating') {
         document.getElementById('ui-status').innerText = "SYSTEM-SIMULATION LÄUFT...";
         document.getElementById('ui-status').className = "text-xs md:text-xl text-red-400 font-bold bg-gray-900 px-2 py-1 md:px-6 md:py-2 rounded-lg border border-red-600 shadow-[0_0_15px_rgba(255,0,0,0.3)] text-center leading-tight";
+    }
+
+    if (state.p1.totalScore > state.p2.totalScore) {
+        document.getElementById('p1-crown').classList.remove('hidden');
+        document.getElementById('p2-crown').classList.add('hidden');
+    } else if (state.p2.totalScore > state.p1.totalScore) {
+        document.getElementById('p1-crown').classList.add('hidden');
+        document.getElementById('p2-crown').classList.remove('hidden');
+    } else {
+        document.getElementById('p1-crown').classList.add('hidden');
+        document.getElementById('p2-crown').classList.add('hidden');
     }
 }
 
@@ -911,6 +901,18 @@ function drawBoard() {
                 ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI*2); ctx.fill();
             }
         }
+        ctx.shadowBlur = 0;
+    }
+
+    if (state.phase === 'end' && state.lastWinTitle) {
+        ctx.fillStyle = state.lastWinColor;
+        ctx.font = 'bold 36px Share Tech Mono';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = state.lastWinColor;
+        let textY = CONFIG.offsetY + (CONFIG.rows - 1) * CONFIG.cellSizeY + 70;
+        ctx.fillText(state.lastWinTitle, canvas.width / 2, textY);
         ctx.shadowBlur = 0;
     }
 }
