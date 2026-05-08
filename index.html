@@ -66,7 +66,7 @@
         <div class="flex flex-col items-center text-center w-[40%] px-1">
             <h1 class="text-xl md:text-4xl glow-text-neutral tracking-widest leading-tight">HACK DUEL</h1>
             <div id="ui-round-display" class="text-[10px] md:text-sm text-yellow-500 mb-1 md:mb-2 font-bold tracking-widest">RUNDE <span id="ui-round">1</span></div>
-            <div id="ui-status" class="text-xs md:text-xl text-yellow-400 font-bold bg-gray-900 px-2 py-1 md:px-6 md:py-2 rounded-lg border border-yellow-600 shadow-[0_0_15px_rgba(255,200,0,0.3)] text-center leading-tight">
+            <div id="ui-status" class="relative text-xs md:text-xl text-yellow-400 font-bold bg-gray-900 px-2 py-1 md:px-6 md:py-2 rounded-lg border border-yellow-600 shadow-[0_0_15px_rgba(255,200,0,0.3)] text-center leading-tight">
                 SYSTEM BEREIT
             </div>
             <div id="ui-timer" class="text-2xl md:text-4xl mt-1 md:mt-3 glow-text-neutral hidden">15.0</div>
@@ -688,8 +688,8 @@ function endGame() {
         state.lastWinColor = "#ffffff";
     }
 
-    document.getElementById('ui-status').innerHTML = "VERBINDUNG GETRENNT<br><button onclick='resetGame(true)' class='mt-1 px-4 py-1 text-xs md:text-sm text-black bg-white hover:bg-yellow-400 rounded font-bold transition-colors cursor-pointer pointer-events-auto'>NÄCHSTES DUELL STARTEN</button>";
-    document.getElementById('ui-status').className = "text-sm md:text-xl text-gray-400 font-bold bg-gray-900 px-2 py-1 md:px-6 md:py-2 rounded-lg border border-gray-600 shadow-none text-center leading-tight z-50 relative pointer-events-auto";
+    document.getElementById('ui-status').innerHTML = "VERBINDUNG GETRENNT<div class='absolute top-full left-1/2 -translate-x-1/2 mt-4 z-50'><button onclick='resetGame(true)' class='px-6 py-3 text-sm md:text-xl text-black bg-white hover:bg-yellow-400 rounded-lg font-bold transition-colors cursor-pointer pointer-events-auto whitespace-nowrap shadow-[0_0_20px_rgba(255,255,255,0.5)]'>NÄCHSTES DUELL STARTEN</button></div>";
+    document.getElementById('ui-status').className = "relative text-sm md:text-xl text-gray-400 font-bold bg-gray-900 px-2 py-1 md:px-6 md:py-2 rounded-lg border border-gray-600 shadow-none text-center leading-tight z-50 pointer-events-auto";
     
     updateUI();
 }
@@ -714,10 +714,10 @@ function updateUI() {
     if (state.phase === 'placing') {
         document.getElementById('ui-timer').innerText = Math.max(0, state.timer).toFixed(1);
         document.getElementById('ui-status').innerText = "SYSTEM-EINBRUCH: IMPULSE SETZEN";
-        document.getElementById('ui-status').className = "text-xs md:text-xl text-yellow-400 font-bold bg-gray-900 px-2 py-1 md:px-6 md:py-2 rounded-lg border border-yellow-600 shadow-[0_0_15px_rgba(255,200,0,0.3)] text-center leading-tight";
+        document.getElementById('ui-status').className = "relative text-xs md:text-xl text-yellow-400 font-bold bg-gray-900 px-2 py-1 md:px-6 md:py-2 rounded-lg border border-yellow-600 shadow-[0_0_15px_rgba(255,200,0,0.3)] text-center leading-tight";
     } else if (state.phase === 'simulating') {
         document.getElementById('ui-status').innerText = "SYSTEM-SIMULATION LÄUFT...";
-        document.getElementById('ui-status').className = "text-xs md:text-xl text-red-400 font-bold bg-gray-900 px-2 py-1 md:px-6 md:py-2 rounded-lg border border-red-600 shadow-[0_0_15px_rgba(255,0,0,0.3)] text-center leading-tight";
+        document.getElementById('ui-status').className = "relative text-xs md:text-xl text-red-400 font-bold bg-gray-900 px-2 py-1 md:px-6 md:py-2 rounded-lg border border-red-600 shadow-[0_0_15px_rgba(255,0,0,0.3)] text-center leading-tight";
     }
 
     if (state.p1.totalScore > state.p2.totalScore) {
@@ -946,6 +946,11 @@ function drawPulses() {
         let y = curY + (nextY - curY) * subProgress;
 
         let color = p.align === 1 ? CONFIG.colors.p1 : CONFIG.colors.p2;
+
+        // Draw the in-progress line segment behind the pulse
+        ctx.strokeStyle = color; ctx.lineWidth = 4; ctx.shadowBlur = 10; ctx.shadowColor = color;
+        ctx.beginPath(); ctx.moveTo(curX, curY); ctx.lineTo(x, y); ctx.stroke();
+        ctx.shadowBlur = 0;
 
         ctx.fillStyle = '#ffffff'; ctx.shadowBlur = 15; ctx.shadowColor = color;
         ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2); ctx.fill();
