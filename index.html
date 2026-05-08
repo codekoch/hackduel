@@ -2,8 +2,8 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hack Duel: Circuit Override</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Droid Hack Duel: Circuit Override</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
@@ -26,8 +26,6 @@
             background: linear-gradient(to bottom, #0a0a15, #030308);
             border: 2px solid #223;
             border-radius: 8px;
-            max-width: 100%;
-            height: auto;
         }
 
         /* Scanline effect */
@@ -41,68 +39,61 @@
         }
     </style>
 </head>
-<body class="h-screen w-screen flex flex-col items-center justify-center relative">
+<body class="h-[100dvh] w-screen flex flex-col items-center justify-between py-2 relative">
 
     <div class="scanlines"></div>
 
     <!-- UI Header -->
-    <div class="w-full max-w-[1250px] flex justify-between items-end px-4 mb-2 z-10">
-        <div class="flex flex-col items-start w-1/3">
-            <h2 class="text-3xl glow-text-p1 font-bold">SPIELER 1 (CYAN)</h2>
-            <p class="text-xs text-gray-400 mt-1">Bewegen: W / S (oder Touch)</p>
-            <p class="text-xs text-gray-400">Setzen: D | Entf.: A (Touch auf Impulse)</p>
-            <div class="text-2xl mt-2">Impulse: <span id="ui-p1-pulses" class="text-white font-bold">6</span> / 6</div>
-            <div class="text-xl mt-1">Runde: <span id="ui-p1-score" class="text-white font-bold">0</span></div>
-            <div class="text-sm text-cyan-300 mt-1">Gesamtpunkte: <span id="ui-p1-total" class="font-bold text-lg">0</span></div>
+    <div class="w-full max-w-[1250px] flex justify-between items-start px-2 md:px-4 shrink-0 z-10 pt-2">
+        <div class="flex flex-col items-start w-[30%]">
+            <h2 class="text-lg md:text-3xl glow-text-p1 font-bold leading-tight">SPIELER 1 <span class="hidden lg:inline">(CYAN)</span></h2>
+            <p class="text-[10px] md:text-xs text-gray-400 mt-1 hidden sm:block">Bewegen: W/S (oder Touch)</p>
+            <p class="text-[10px] md:text-xs text-gray-400 hidden sm:block">Setzen/Entf: D/A</p>
+            <div class="text-sm md:text-2xl mt-1 md:mt-2">Impulse: <span id="ui-p1-pulses" class="text-white font-bold">6</span> <span class="hidden md:inline">/ 6</span></div>
+            <div class="text-xs md:text-xl mt-0 md:mt-1">Runde: <span id="ui-p1-score" class="text-white font-bold">0</span></div>
+            <div class="text-[10px] md:text-sm text-cyan-300 mt-0 md:mt-1">Gesamtpunkte: <span id="ui-p1-total" class="font-bold text-sm md:text-lg">0</span></div>
         </div>
 
-        <div class="flex flex-col items-center text-center w-1/3">
-            <h1 class="text-4xl glow-text-neutral tracking-widest">HACK DUEL</h1>
-            <div id="ui-round-display" class="text-sm text-yellow-500 mb-2 font-bold tracking-widest">RUNDE <span id="ui-round">1</span></div>
-            <div id="ui-status" class="text-xl text-yellow-400 font-bold bg-gray-900 px-6 py-2 rounded-lg border border-yellow-600 shadow-[0_0_15px_rgba(255,200,0,0.3)] text-center">
+        <div class="flex flex-col items-center text-center w-[40%] px-1">
+            <h1 class="text-xl md:text-4xl glow-text-neutral tracking-widest leading-tight">HACK DUEL</h1>
+            <div id="ui-round-display" class="text-[10px] md:text-sm text-yellow-500 mb-1 md:mb-2 font-bold tracking-widest">RUNDE <span id="ui-round">1</span></div>
+            <div id="ui-status" class="text-xs md:text-xl text-yellow-400 font-bold bg-gray-900 px-2 py-1 md:px-6 md:py-2 rounded-lg border border-yellow-600 shadow-[0_0_15px_rgba(255,200,0,0.3)] text-center leading-tight">
                 SYSTEM BEREIT
             </div>
-            <div id="ui-timer" class="text-4xl mt-3 glow-text-neutral hidden">15.0</div>
+            <div id="ui-timer" class="text-2xl md:text-4xl mt-1 md:mt-3 glow-text-neutral hidden">15.0</div>
         </div>
 
-        <div class="flex flex-col items-end w-1/3 text-right">
-            <h2 class="text-3xl glow-text-p2 font-bold">SPIELER 2 (MAGENTA)</h2>
-            <p class="text-xs text-gray-400 mt-1">Bewegen: PFEILE HOCH / RUNTER</p>
-            <p class="text-xs text-gray-400">Setzen: LINKS | Entf.: RECHTS</p>
-            <div class="text-2xl mt-2">Impulse: <span id="ui-p2-pulses" class="text-white font-bold">6</span> / 6</div>
-            <div class="text-xl mt-1">Runde: <span id="ui-p2-score" class="text-white font-bold">0</span></div>
-            <div class="text-sm text-pink-400 mt-1">Gesamtpunkte: <span id="ui-p2-total" class="font-bold text-lg">0</span></div>
+        <div class="flex flex-col items-end w-[30%] text-right">
+            <h2 class="text-lg md:text-3xl glow-text-p2 font-bold leading-tight"><span class="hidden lg:inline">SPIELER 2 (MAGENTA)</span><span class="lg:hidden">SPIELER 2</span></h2>
+            <p class="text-[10px] md:text-xs text-gray-400 mt-1 hidden sm:block">Bewegen: PFEILE (Touch)</p>
+            <p class="text-[10px] md:text-xs text-gray-400 hidden sm:block">Setzen/Entf: LI/RE</p>
+            <div class="text-sm md:text-2xl mt-1 md:mt-2">Impulse: <span id="ui-p2-pulses" class="text-white font-bold">6</span> <span class="hidden md:inline">/ 6</span></div>
+            <div class="text-xs md:text-xl mt-0 md:mt-1">Runde: <span id="ui-p2-score" class="text-white font-bold">0</span></div>
+            <div class="text-[10px] md:text-sm text-pink-400 mt-0 md:mt-1">Gesamtpunkte: <span id="ui-p2-total" class="font-bold text-sm md:text-lg">0</span></div>
         </div>
     </div>
 
-    <!-- Game Canvas -->
-    <div class="relative z-10 w-full flex justify-center">
-        <canvas id="gameCanvas" width="1250" height="720"></canvas>
+    <!-- Game Canvas Container -->
+    <div class="relative z-10 w-full flex-1 min-h-0 flex justify-center items-center px-2 py-2">
+        <canvas id="gameCanvas" width="1250" height="720" class="max-w-full max-h-full object-contain"></canvas>
         
-        <!-- Legend Overlay (Bottom) -->
-        <div class="absolute bottom-4 left-0 w-full flex justify-center space-x-8 text-xs text-gray-400 opacity-80 pointer-events-none">
-            <span class="flex items-center"><span class="w-3 h-3 bg-yellow-500 rotate-45 inline-block mr-2"></span>Inverter (Farbwechsel)</span>
-            <span class="flex items-center"><span class="text-blue-400 font-bold text-lg mr-2">⮬</span>Splitter (Dupliziert)</span>
-            <span class="flex items-center"><span class="text-red-500 font-bold text-lg mr-2">✖</span>Terminator (Zerstört)</span>
-        </div>
-
-        <!-- Tutorial Screen (Start) -->
+        <!-- Tutorial Screen -->
         <div id="tutorial-msg" class="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-md z-30 rounded-lg">
-            <div class="p-8 border-2 border-cyan-600 bg-gray-900/95 rounded-xl max-w-3xl text-left shadow-[0_0_50px_rgba(0,255,255,0.2)] flex flex-col items-center">
-                <h2 class="text-5xl mb-6 glow-text-neutral text-center tracking-widest">SYSTEM-TUTORIAL</h2>
-                <div class="space-y-4 text-gray-300 text-lg w-full">
-                    <p>Kämpfe um die Kontrolle der zentralen Prozessorkerne in der Mitte.</p>
-                    <ul class="list-disc pl-6 space-y-2 text-md">
+            <div class="p-4 md:p-8 border-2 border-cyan-600 bg-gray-900/95 rounded-xl w-[95%] max-w-3xl max-h-[95dvh] overflow-y-auto text-left shadow-[0_0_50px_rgba(0,255,255,0.2)] flex flex-col items-center">
+                <h2 class="text-3xl md:text-5xl mb-4 md:mb-6 glow-text-neutral text-center tracking-widest">SYSTEM-TUTORIAL</h2>
+                <div class="space-y-3 md:space-y-4 text-gray-300 text-sm md:text-lg w-full">
+                    <p>Zwei Hacker kämpfen um die Kontrolle der zentralen Prozessorkerne in der Mitte.</p>
+                    <ul class="list-disc pl-5 md:pl-6 space-y-1 md:space-y-2">
                         <li><strong>Ziel:</strong> Erobere mehr Kerne als dein Gegner. Jeder Kern bringt dir einen permanenten Punkt.</li>
-                        <li><strong>Setzphase:</strong> Du hast 15 Sekunden Zeit, deine begrenzten Impulse auf deine Reihen links oder rechts zu verteilen. (Via Tastatur oder durch Antippen)</li>
+                        <li><strong>Setzphase:</strong> Du hast 15 Sekunden Zeit, deine begrenzten Impulse auf deine Reihen links oder rechts zu verteilen. (Via Tastatur oder durch Antippen der Randknoten auf dem Touchscreen)</li>
                         <li><strong>Simulationsphase:</strong> Impulse laufen los. Treffen entgegengesetzte Impulse aufeinander, zerstören sie sich!</li>
                     </ul>
-                    <h3 class="text-2xl text-yellow-400 mt-6 border-b border-gray-700 pb-1">Hindernisse auf dem Weg:</h3>
-                    <div class="flex items-center bg-gray-800/50 p-2 rounded"><span class="w-4 h-4 bg-yellow-500 rotate-45 inline-block mx-4 shadow-[0_0_10px_#ffaa00]"></span> <strong>Inverter:</strong> Invertiert einen Impuls zu einem gegnerischen Impuls.</div>
-                    <div class="flex items-center bg-gray-800/50 p-2 rounded"><span class="text-blue-400 font-bold text-3xl mx-3 leading-none">⮬</span> <strong>Splitter:</strong> Dupliziert  einen Impuls auf  eine Nachbarleitung.</div>
-                    <div class="flex items-center bg-gray-800/50 p-2 rounded"><span class="text-red-500 font-bold text-3xl mx-3 leading-none">✖</span> <strong>Terminator:</strong> Zerstört jeden Impuls sofort.</div>
+                    <h3 class="text-xl md:text-2xl text-yellow-400 mt-4 md:mt-6 border-b border-gray-700 pb-1">Hindernisse auf dem Weg:</h3>
+                    <div class="flex items-center bg-gray-800/50 p-2 rounded"><span class="w-3 h-3 md:w-4 md:h-4 bg-yellow-500 rotate-45 inline-block mx-3 md:mx-4 shadow-[0_0_10px_#ffaa00]"></span> <strong>Inverter:</strong> Wechselt die Farbe eines Impulses (wird feindlich!).</div>
+                    <div class="flex items-center bg-gray-800/50 p-2 rounded"><span class="text-blue-400 font-bold text-2xl md:text-3xl mx-2 md:mx-3 leading-none">⮬</span> <strong>Splitter:</strong> Dupliziert deinen Impuls auf die Nachbar-Leitung.</div>
+                    <div class="flex items-center bg-gray-800/50 p-2 rounded"><span class="text-red-500 font-bold text-2xl md:text-3xl mx-2 md:mx-3 leading-none">✖</span> <strong>Terminator:</strong> Zerstört jeden Impuls sofort.</div>
                 </div>
-                <button onclick="closeTutorial()" class="mt-8 px-10 py-4 bg-cyan-900 border-2 border-cyan-400 text-white hover:bg-cyan-400 hover:text-black transition-all text-2xl font-bold rounded shadow-[0_0_20px_rgba(0,255,255,0.6)]">
+                <button onclick="closeTutorial()" class="mt-6 md:mt-8 px-6 py-3 md:px-10 md:py-4 bg-cyan-900 border-2 border-cyan-400 text-white hover:bg-cyan-400 hover:text-black transition-all text-xl md:text-2xl font-bold rounded shadow-[0_0_20px_rgba(0,255,255,0.6)]">
                     VERSTANDEN - DUELL STARTEN
                 </button>
             </div>
@@ -110,16 +101,16 @@
 
         <!-- End Game Overlay -->
         <div id="overlay-msg" class="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px] hidden rounded-lg z-20">
-            <div class="text-center p-8 border-2 border-gray-600 bg-gray-900/95 rounded-xl shadow-[0_0_50px_rgba(0,0,0,1)] relative flex flex-col items-center min-w-[500px]">
-                <button onclick="document.getElementById('overlay-msg').classList.add('hidden')" class="absolute top-2 right-4 text-gray-400 hover:text-white text-3xl leading-none">&times;</button>
-                <h2 id="overlay-title" class="text-6xl mb-4 glow-text-neutral">GEWINNER</h2>
-                <p id="overlay-subtitle" class="text-2xl text-gray-300 mb-8 leading-relaxed">System übernommen.</p>
+            <div class="text-center p-6 md:p-8 border-2 border-gray-600 bg-gray-900/95 rounded-xl shadow-[0_0_50px_rgba(0,0,0,1)] relative flex flex-col items-center w-[90%] md:min-w-[500px] md:w-auto">
+                <button onclick="document.getElementById('overlay-msg').classList.add('hidden')" class="absolute top-1 md:top-2 right-3 md:right-4 text-gray-400 hover:text-white text-3xl leading-none">&times;</button>
+                <h2 id="overlay-title" class="text-4xl md:text-6xl mb-2 md:mb-4 glow-text-neutral">GEWINNER</h2>
+                <p id="overlay-subtitle" class="text-lg md:text-2xl text-gray-300 mb-6 md:mb-8 leading-relaxed">System übernommen.</p>
                 
-                <div class="flex space-x-4">
-                    <button onclick="document.getElementById('overlay-msg').classList.add('hidden')" class="px-6 py-3 bg-transparent border-2 border-gray-400 text-gray-300 hover:bg-gray-800 hover:text-white transition-all text-xl font-bold rounded">
+                <div class="flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-4 w-full justify-center">
+                    <button onclick="document.getElementById('overlay-msg').classList.add('hidden')" class="px-4 py-2 md:px-6 md:py-3 bg-transparent border-2 border-gray-400 text-gray-300 hover:bg-gray-800 hover:text-white transition-all text-base md:text-xl font-bold rounded">
                         Spielfeld ansehen
                     </button>
-                    <button onclick="resetGame(true)" class="px-6 py-3 bg-gray-800 border-2 border-white hover:bg-white hover:text-black transition-all text-xl font-bold rounded shadow-[0_0_15px_rgba(255,255,255,0.5)]">
+                    <button onclick="resetGame(true)" class="px-4 py-2 md:px-6 md:py-3 bg-gray-800 border-2 border-white hover:bg-white hover:text-black transition-all text-base md:text-xl font-bold rounded shadow-[0_0_15px_rgba(255,255,255,0.5)]">
                         NÄCHSTES DUELL
                     </button>
                 </div>
@@ -127,9 +118,16 @@
         </div>
     </div>
 
+    <!-- Legend Overlay (Bottom) -->
+    <div class="w-full shrink-0 flex justify-center space-x-4 md:space-x-8 text-[10px] md:text-xs text-gray-400 opacity-80 pointer-events-none pb-2 z-10">
+        <span class="flex items-center"><span class="w-2 h-2 md:w-3 md:h-3 bg-yellow-500 rotate-45 inline-block mr-1 md:mr-2"></span>Inverter (Farbe)</span>
+        <span class="flex items-center"><span class="text-blue-400 font-bold text-sm md:text-lg mr-1 md:mr-2">⮬</span>Splitter (Kopie)</span>
+        <span class="flex items-center"><span class="text-red-500 font-bold text-sm md:text-lg mr-1 md:mr-2">✖</span>Terminator (Tod)</span>
+    </div>
+
 <script>
 /**
- * Audio / Sound Engine (Web Audio API)
+ * Audio / Sound Engine (Web Audio API) - Cyberspace/Electric Theme
  */
 const AudioSys = {
     ctx: null,
@@ -150,50 +148,78 @@ const AudioSys = {
         
         switch(type) {
             case 'place':
-                osc.type = 'sine'; osc.frequency.setValueAtTime(800, now);
-                osc.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
-                gain.gain.setValueAtTime(0.15, now); gain.gain.linearRampToValueAtTime(0, now + 0.1);
-                osc.start(now); osc.stop(now + 0.1);
+                // Sharp Data-Blip (Square wave with extremely fast frequency drop)
+                osc.type = 'square'; 
+                osc.frequency.setValueAtTime(2000, now);
+                osc.frequency.exponentialRampToValueAtTime(200, now + 0.05);
+                gain.gain.setValueAtTime(0.08, now); 
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+                osc.start(now); osc.stop(now + 0.05);
                 break;
             case 'remove':
-                osc.type = 'square'; osc.frequency.setValueAtTime(400, now);
-                osc.frequency.exponentialRampToValueAtTime(200, now + 0.1);
-                gain.gain.setValueAtTime(0.05, now); gain.gain.linearRampToValueAtTime(0, now + 0.1);
-                osc.start(now); osc.stop(now + 0.1);
+                // Data Deletion (Sawtooth dropping fast to sound like zipping down)
+                osc.type = 'sawtooth'; 
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.exponentialRampToValueAtTime(100, now + 0.08);
+                gain.gain.setValueAtTime(0.05, now); 
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                osc.start(now); osc.stop(now + 0.08);
                 break;
             case 'explode':
-                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now);
-                osc.frequency.exponentialRampToValueAtTime(20, now + 0.3);
-                gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-                osc.start(now); osc.stop(now + 0.3);
+                // Electric Spark / Short Circuit (Sawtooth modulating fast)
+                osc.type = 'square'; 
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.linearRampToValueAtTime(50, now + 0.15);
+                gain.gain.setValueAtTime(0.15, now); 
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc.start(now); osc.stop(now + 0.15);
                 break;
             case 'capture':
-                osc.type = 'sine'; osc.frequency.setValueAtTime(1000, now);
-                osc.frequency.setValueAtTime(1600, now + 0.1);
-                gain.gain.setValueAtTime(0, now); gain.gain.linearRampToValueAtTime(0.15, now + 0.05); gain.gain.linearRampToValueAtTime(0, now + 0.3);
-                osc.start(now); osc.stop(now + 0.3);
+                // Digital Confirmation Ping
+                osc.type = 'sine'; 
+                osc.frequency.setValueAtTime(1200, now);
+                osc.frequency.setValueAtTime(2400, now + 0.05);
+                gain.gain.setValueAtTime(0.1, now); 
+                gain.gain.linearRampToValueAtTime(0, now + 0.2);
+                osc.start(now); osc.stop(now + 0.2);
                 break;
             case 'invert':
-                osc.type = 'triangle'; osc.frequency.setValueAtTime(600, now);
+                // Phase-shift (Frequency sweeps up and then down)
+                osc.type = 'triangle'; 
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.linearRampToValueAtTime(1500, now + 0.1);
                 osc.frequency.linearRampToValueAtTime(300, now + 0.2);
-                gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now + 0.2);
+                gain.gain.setValueAtTime(0.1, now); 
+                gain.gain.linearRampToValueAtTime(0, now + 0.2);
                 osc.start(now); osc.stop(now + 0.2);
                 break;
             case 'split':
-                osc.type = 'sine'; osc.frequency.setValueAtTime(1500, now);
-                osc.frequency.exponentialRampToValueAtTime(2500, now + 0.1);
-                gain.gain.setValueAtTime(0.05, now); gain.gain.linearRampToValueAtTime(0, now + 0.1);
-                osc.start(now); osc.stop(now + 0.1);
+                // Fast Data Trill (rapid switching between frequencies)
+                osc.type = 'square'; 
+                for(let i=0; i<4; i++) {
+                    osc.frequency.setValueAtTime(1000, now + i*0.02);
+                    osc.frequency.setValueAtTime(2000, now + i*0.02 + 0.01);
+                }
+                gain.gain.setValueAtTime(0.05, now); 
+                gain.gain.linearRampToValueAtTime(0, now + 0.08);
+                osc.start(now); osc.stop(now + 0.08);
                 break;
             case 'start':
-                osc.type = 'square'; osc.frequency.setValueAtTime(440, now);
-                osc.frequency.setValueAtTime(880, now + 0.1); osc.frequency.setValueAtTime(1760, now + 0.2);
-                gain.gain.setValueAtTime(0, now); gain.gain.linearRampToValueAtTime(0.1, now+0.05); gain.gain.linearRampToValueAtTime(0, now + 0.4);
-                osc.start(now); osc.stop(now + 0.4);
+                // System Power-Up (Low electrical hum rising in pitch)
+                osc.type = 'sawtooth'; 
+                osc.frequency.setValueAtTime(50, now);
+                osc.frequency.exponentialRampToValueAtTime(500, now + 0.5);
+                gain.gain.setValueAtTime(0, now); 
+                gain.gain.linearRampToValueAtTime(0.1, now + 0.3); 
+                gain.gain.linearRampToValueAtTime(0, now + 0.6);
+                osc.start(now); osc.stop(now + 0.6);
                 break;
             case 'error':
-                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now);
-                gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now + 0.15);
+                // 60Hz Electric Buzz / Fault
+                osc.type = 'square'; 
+                osc.frequency.setValueAtTime(60, now);
+                gain.gain.setValueAtTime(0.15, now); 
+                gain.gain.linearRampToValueAtTime(0, now + 0.15);
                 osc.start(now); osc.stop(now + 0.15);
                 break;
         }
@@ -318,7 +344,6 @@ function resetGame(advanceRound = false) {
         state.roundCount++;
     }
     
-    // Total Scores erhalten!
     let oldTotal1 = state.p1.totalScore;
     let oldTotal2 = state.p2.totalScore;
 
@@ -337,7 +362,6 @@ function resetGame(advanceRound = false) {
     document.getElementById('overlay-msg').classList.add('hidden');
     document.getElementById('ui-timer').classList.remove('hidden');
     
-    // Start Audio wenn noch nicht geschehen (bei Keyboard shortcut)
     AudioSys.init();
     AudioSys.play('start');
 
@@ -377,11 +401,11 @@ function buildPulses() {
  * Input Handling (Keyboard)
  */
 window.addEventListener('keydown', (e) => {
-    if (state.phase === 'tutorial') return; // Im Tutorial keine Eingaben außer Button
+    if (state.phase === 'tutorial') return; 
 
     if (e.code === 'Space') {
         if (state.phase === 'end' || state.phase === 'start') {
-            resetGame(state.phase === 'end'); // Advance round if from end screen
+            resetGame(state.phase === 'end'); 
         }
         return;
     }
@@ -430,13 +454,12 @@ window.addEventListener('keydown', (e) => {
 });
 
 /**
- * Input Handling (Touch & Mouse for iPads/Tablets)
+ * Input Handling (Touch & Mouse)
  */
 canvas.addEventListener('pointerdown', (e) => {
     e.preventDefault(); 
     if (state.phase !== 'placing') return;
 
-    // Init Audio context on first interaction if needed
     AudioSys.init();
 
     const rect = canvas.getBoundingClientRect();
@@ -556,7 +579,7 @@ function update(dt) {
 function executeSimulationStep() {
     let living = state.activePulses.filter(p => !p.dead);
     
-    // SFX Trigger Flags to prevent sound overload per frame
+    // SFX Trigger Flags 
     let sfxExplode = false, sfxCapture = false, sfxInvert = false, sfxSplit = false;
 
     living.forEach(p => {
@@ -620,7 +643,7 @@ function executeSimulationStep() {
 
         // Core Hit
         if (p.c === CONFIG.coreCol) {
-            if(state.cores[p.r] === 0) sfxCapture = true; // Only play if neutral
+            if(state.cores[p.r] === 0) sfxCapture = true; 
             state.cores[p.r] = p.align;
             p.dead = true;
             createExplosion(x, y, p.align === 1 ? CONFIG.colors.p1 : CONFIG.colors.p2, 2);
@@ -672,7 +695,6 @@ function executeSimulationStep() {
 
     state.activePulses.push(...newSpawns);
 
-    // Play grouped sounds for this frame
     if (sfxExplode) AudioSys.play('explode');
     if (sfxCapture) AudioSys.play('capture');
     if (sfxInvert) AudioSys.play('invert');
@@ -682,11 +704,9 @@ function executeSimulationStep() {
 function endGame() {
     state.phase = 'end';
     
-    // Runden-Ergebnis
     let score1 = state.cores.filter(c => c === 1).length;
     let score2 = state.cores.filter(c => c === 2).length;
     
-    // Auf Gesamtpunkte addieren
     state.p1.totalScore += score1;
     state.p2.totalScore += score2;
 
@@ -708,7 +728,6 @@ function endGame() {
         titleClass = "glow-text-neutral";
     }
 
-    // Leader Text generieren
     let leaderText = "";
     if (state.p1.totalScore > state.p2.totalScore) {
         leaderText = `Spieler 1 führt insgesamt mit ${state.p1.totalScore} zu ${state.p2.totalScore} Punkten.`;
@@ -720,13 +739,13 @@ function endGame() {
 
     const titleEl = document.getElementById('overlay-title');
     titleEl.innerText = title;
-    titleEl.className = `text-6xl mb-4 font-bold tracking-wider ${titleClass}`;
+    titleEl.className = `text-4xl md:text-6xl mb-2 md:mb-4 font-bold tracking-wider ${titleClass}`;
     
-    document.getElementById('overlay-subtitle').innerHTML = `${subRound}<br><br><span class="text-yellow-400 font-bold text-3xl block p-2 bg-gray-900 border border-yellow-600 rounded">${leaderText}</span>`;
+    document.getElementById('overlay-subtitle').innerHTML = `${subRound}<br><br><span class="text-yellow-400 font-bold text-lg md:text-3xl block p-2 bg-gray-900 border border-yellow-600 rounded">${leaderText}</span>`;
     
     document.getElementById('overlay-msg').classList.remove('hidden');
-    document.getElementById('ui-status').innerHTML = "VERBINDUNG GETRENNT<br><button onclick='resetGame(true)' class='mt-1 text-sm text-white underline hover:text-yellow-300'>NÄCHSTES DUELL STARTEN</button>";
-    document.getElementById('ui-status').className = "text-xl text-gray-400 font-bold bg-gray-900 px-6 py-2 rounded-lg border border-gray-600 shadow-none text-center";
+    document.getElementById('ui-status').innerHTML = "VERBINDUNG GETRENNT<br><button onclick='resetGame(true)' class='mt-1 text-xs md:text-sm text-white underline hover:text-yellow-300'>NÄCHSTES DUELL STARTEN</button>";
+    document.getElementById('ui-status').className = "text-sm md:text-xl text-gray-400 font-bold bg-gray-900 px-2 py-1 md:px-6 md:py-2 rounded-lg border border-gray-600 shadow-none text-center leading-tight";
     
     updateUI();
 }
@@ -738,7 +757,6 @@ function updateUI() {
     document.getElementById('ui-p1-score').innerText = state.cores.filter(c=>c===1).length;
     document.getElementById('ui-p2-score').innerText = state.cores.filter(c=>c===2).length;
     
-    // Gesamtpunkte in der UI aktualisieren
     document.getElementById('ui-p1-total').innerText = state.p1.totalScore;
     document.getElementById('ui-p2-total').innerText = state.p2.totalScore;
 
@@ -747,10 +765,10 @@ function updateUI() {
     if (state.phase === 'placing') {
         document.getElementById('ui-timer').innerText = Math.max(0, state.timer).toFixed(1);
         document.getElementById('ui-status').innerText = "SYSTEM-EINBRUCH: IMPULSE SETZEN";
-        document.getElementById('ui-status').className = "text-xl text-yellow-400 font-bold bg-gray-900 px-6 py-2 rounded-lg border border-yellow-600 shadow-[0_0_15px_rgba(255,200,0,0.3)] text-center";
+        document.getElementById('ui-status').className = "text-xs md:text-xl text-yellow-400 font-bold bg-gray-900 px-2 py-1 md:px-6 md:py-2 rounded-lg border border-yellow-600 shadow-[0_0_15px_rgba(255,200,0,0.3)] text-center leading-tight";
     } else if (state.phase === 'simulating') {
         document.getElementById('ui-status').innerText = "SYSTEM-SIMULATION LÄUFT...";
-        document.getElementById('ui-status').className = "text-xl text-red-400 font-bold bg-gray-900 px-6 py-2 rounded-lg border border-red-600 shadow-[0_0_15px_rgba(255,0,0,0.3)] text-center";
+        document.getElementById('ui-status').className = "text-xs md:text-xl text-red-400 font-bold bg-gray-900 px-2 py-1 md:px-6 md:py-2 rounded-lg border border-red-600 shadow-[0_0_15px_rgba(255,0,0,0.3)] text-center leading-tight";
     }
 }
 
