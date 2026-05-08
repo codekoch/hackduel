@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Droid Hack Duel: Circuit Override</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+        
+        body {
+            font-family: 'Share Tech Mono', monospace;
+            background-color: #030308;
+            color: #00ffff;
+            overflow: hidden;
+            user-select: none;
+            touch-action: none; /* Verhindert Scrollen auf Touch-Geräten beim Tippen */
+        }
+
+        .glow-text-p1 { text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff; color: #00ffff; }
+        .glow-text-p2 { text-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff; color: #ff00ff; }
+        .glow-text-neutral { text-shadow: 0 0 10px #ffffff; color: #ffffff; }
+
+        canvas {
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.1), inset 0 0 30px rgba(255, 0, 255, 0.1);
+            background: linear-gradient(to bottom, #0a0a15, #030308);
+            border: 2px solid #223;
+            border-radius: 8px;
+            max-width: 100%;
+            height: auto;
+        }
+
+        /* Scanline effect */
+        .scanlines {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.25) 50%, rgba(0,0,0,0.25));
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 50;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col items-center justify-center relative">
+
+    <div class="scanlines"></div>
+
+    <!-- UI Header -->
+    <div class="w-full max-w-[1250px] flex justify-between items-end px-4 mb-2 z-10">
+        <div class="flex flex-col items-start w-1/3">
+            <h2 class="text-3xl glow-text-p1 font-bold">SPIELER 1 (CYAN)</h2>
+            <p class="text-xs text-gray-400 mt-1">Bewegen: W / S (oder Touch)</p>
+            <p class="text-xs text-gray-400">Setzen: D | Entf.: A (Touch auf Impulse)</p>
+            <div class="text-2xl mt-2">Impulse: <span id="ui-p1-pulses" class="text-white font-bold">6</span> / 6</div>
+            <div class="text-xl mt-1">Kerne erobert: <span id="ui-p1-score" class="text-white font-bold">0</span></div>
+        </div>
+
+        <div class="flex flex-col items-center text-center w-1/3">
+            <h1 class="text-4xl glow-text-neutral tracking-widest">DROID HACK DUEL</h1>
+            <div id="ui-round-display" class="text-sm text-yellow-500 mb-2 font-bold tracking-widest">RUNDE <span id="ui-round">1</span></div>
+            <div id="ui-status" class="text-xl text-yellow-400 font-bold bg-gray-900 px-6 py-2 rounded-lg border border-yellow-600 shadow-[0_0_15px_rgba(255,200,0,0.3)] text-center">
+                DRÜCKE LEERTASTE ZUM STARTEN
+            </div>
+            <div id="ui-timer" class="text-4xl mt-3 glow-text-neutral hidden">15.0</div>
+        </div>
+
+        <div class="flex flex-col items-end w-1/3 text-right">
+            <h2 class="text-3xl glow-text-p2 font-bold">SPIELER 2 (MAGENTA)</h2>
+            <p class="text-xs text-gray-400 mt-1">Bewegen: PFEILE HOCH / RUNTER</p>
+            <p class="text-xs text-gray-400">Setzen: LINKS | Entf.: RECHTS</p>
+            <div class="text-2xl mt-2">Impulse: <span id="ui-p2-pulses" class="text-white font-bold">6</span> / 6</div>
+            <div class="text-xl mt-1">Kerne erobert: <span id="ui-p2-score" class="text-white font-bold">0</span></div>
+        </div>
+    </div>
+
+    <!-- Game Canvas -->
+    <div class="relative z-10 w-full flex justify-center">
+        <canvas id="gameCanvas" width="1250" height="720"></canvas>
+        
+        <!-- Legend Overlay (Bottom) -->
+        <div class="absolute bottom-4 left-0 w-full flex justify-center space-x-8 text-xs text-gray-400 opacity-80 pointer-events-none">
+            <span class="flex items-center"><span class="w-3 h-3 bg-yellow-500 rotate-45 inline-block mr-2"></span>Inverter (Farbwechsel)</span>
+            <span class="flex items-center"><span class="text-blue-400 font-bold text-lg mr-2">⮬</span>Splitter (Dupliziert Impuls)</span>
+            <span class="flex items-center"><span class="text-red-500 font-bold text-lg mr-2">✖</span>Terminator (Zerstört)</span>
+        </div>
+
+        <!-- End Game Overlay -->
+        <div id="overlay-msg" class="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px] hidden rounded-lg z-20">
+            <div class="text-center p-8 border-2 border-gray-600 bg-gray-900/90 rounded-xl shadow-[0_0_50px_rgba(0,0,0,1)] relative flex flex-col items-center">
+                <button onclick="document.getElementById('overlay-msg').classList.add('hidden')" class="absolute top-2 right-4 text-gray-400 hover:text-white text-3xl leading-none">&times;</button>
+                <h2 id="overlay-title" class="text-6xl mb-4 glow-text-neutral">GEWINNER</h2>
+                <p id="overlay-subtitle" class="text-2xl text-gray-300 mb-8">System übernommen.</p>
+                
+                <div class="flex space-x-4">
+                    <button onclick="document.getElementById('overlay-msg').classList.add('hidden')" class="px-6 py-3 bg-transparent border-2 border-gray-400 text-gray-300 hover:bg-gray-800 hover:text-white transition-all text-xl font-bold rounded">
+                        Spielfeld ansehen
+                    </button>
+                    <button onclick="resetGame(true)" class="px-6 py-3 bg-gray-800 border-2 border-white hover:bg-white hover:text-black transition-all text-xl font-bold rounded shadow-[0_0_15px_rgba(255,255,255,0.5)]">
+                        NÄCHSTES DUELL
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+/**
+ * Game Configuration & State
+ */
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+const CONFIG = {
+    rows: 10,
+    cols: 15,        // 0 to 14. Core is at index 7.
+    coreCol: 7,
+    maxPulses: 6,    
+    placeTime: 15,   
+    cellSizeX: 75,
+    cellSizeY: 60,
+    offsetX: 100,
+    offsetY: 60,
+    ticksPerStep: 25, 
+    colors: {
+        bg: '#030308',
+        p1: '#00ffff',
+        p2: '#ff00ff',
+        line: '#2a2a3a',
+        coreEmpty: '#333344',
+        inverter: '#ffaa00',
+        terminator: '#ff3333',
+        splitter: '#55aaff'
+    }
+};
+
+let state = {
+    phase: 'start', 
+    timer: 0,
+    roundCount: 1,  
+    board: [],
+    p1: { pulses: CONFIG.maxPulses, cursor: 0, inputs: Array(CONFIG.rows).fill(0), score: 0 },
+    p2: { pulses: CONFIG.maxPulses, cursor: 0, inputs: Array(CONFIG.rows).fill(0), score: 0 },
+    activePulses: [],
+    paths: [], 
+    cores: Array(CONFIG.rows).fill(0), 
+    particles: [],
+    animTick: 0
+};
+
+/**
+ * Initialization & Generation (Fair Pool-based Generation)
+ */
+function initBoard() {
+    state.board = [];
+    for (let r = 0; r < CONFIG.rows; r++) {
+        state.board[r] = [];
+        for (let c = 0; c < CONFIG.cols; c++) {
+            state.board[r][c] = { type: 'none', owner: 0 }; 
+        }
+    }
+
+    // 1. Bestimme die Anzahl der Hindernisse für beide Spieler (das Budget / der Pool)
+    let numInverters = 0, numSplittersUp = 0, numSplittersDown = 0, numTerminators = 0;
+
+    if (state.roundCount === 1) {
+        numInverters = 2; // Sanfter Einstieg
+    } else if (state.roundCount === 2) {
+        numInverters = 3; numSplittersUp = 1; numSplittersDown = 1;
+    } else if (state.roundCount === 3) {
+        numInverters = 5; numSplittersUp = 2; numSplittersDown = 2;
+    } else if (state.roundCount === 4) {
+        numInverters = 6; numSplittersUp = 3; numSplittersDown = 3; numTerminators = 2;
+    } else {
+        let extra = state.roundCount - 4;
+        numInverters = Math.min(12, 6 + extra * 1);
+        numSplittersUp = Math.min(6, 3 + extra * 1);
+        numSplittersDown = Math.min(6, 3 + extra * 1);
+        numTerminators = Math.min(8, 2 + extra * 1);
+    }
+
+    // 2. Erstelle das Array (den Pool) mit diesen Komponenten
+    let basePool = [];
+    for(let i = 0; i < numInverters; i++) basePool.push('inverter');
+    for(let i = 0; i < numSplittersUp; i++) basePool.push('splitter_up');
+    for(let i = 0; i < numSplittersDown; i++) basePool.push('splitter_down');
+    for(let i = 0; i < numTerminators; i++) basePool.push('terminator');
+
+    // Hilfsfunktion: Verteilt einen Komponenten-Pool asymmetrisch aber fair auf einer Seite
+    function placePoolOnSide(isLeft) {
+        // Grenzen der jeweiligen Spielfeldhälfte
+        let colStart = isLeft ? 1 : CONFIG.coreCol + 1;
+        let colEnd = isLeft ? CONFIG.coreCol - 1 : CONFIG.cols - 2;
+        
+        // Mische den Pool zufällig für diese Seite
+        let pool = [...basePool].sort(() => Math.random() - 0.5);
+
+        for (let comp of pool) {
+            let placed = false;
+            let attempts = 0;
+            // Suche so lange ein freies Feld, bis die Komponente platziert ist (max 200 Versuche als Notbremse)
+            while (!placed && attempts < 200) {
+                attempts++;
+                let r = Math.floor(Math.random() * CONFIG.rows);
+                let c = Math.floor(Math.random() * (colEnd - colStart + 1)) + colStart;
+
+                if (state.board[r][c].type !== 'none') continue; // Feld ist schon belegt
+
+                // Logik-Regeln: Splitter dürfen nicht über den Rand zeigen
+                if (comp === 'splitter_up' && r === 0) continue;
+                if (comp === 'splitter_down' && r === CONFIG.rows - 1) continue;
+
+                // Alles passt -> Komponente setzen
+                state.board[r][c].type = comp;
+                placed = true;
+            }
+        }
+    }
+
+    // 3. Platziere den exakt gleichen Komponenten-Pool für beide Seiten!
+    placePoolOnSide(true);  // P1 Seite
+    placePoolOnSide(false); // P2 Seite
+}
+
+function resetGame(advanceRound = false) {
+    if (advanceRound) {
+        state.roundCount++;
+    }
+    
+    state.phase = 'placing';
+    state.timer = CONFIG.placeTime;
+    state.p1 = { pulses: CONFIG.maxPulses, cursor: 0, inputs: Array(CONFIG.rows).fill(0), score: 0 };
+    state.p2 = { pulses: CONFIG.maxPulses, cursor: 0, inputs: Array(CONFIG.rows).fill(0), score: 0 };
+    state.activePulses = [];
+    state.paths = [];
+    state.cores = Array(CONFIG.rows).fill(0);
+    state.particles = [];
+    state.animTick = 0;
+    
+    initBoard();
+    
+    document.getElementById('overlay-msg').classList.add('hidden');
+    document.getElementById('ui-timer').classList.remove('hidden');
+    updateUI();
+}
+
+/**
+ * Prepare Simulation Pulses
+ */
+function buildPulses() {
+    state.activePulses = [];
+    
+    for (let owner of [1, 2]) {
+        let inputs = owner === 1 ? state.p1.inputs : state.p2.inputs;
+        let startCol = owner === 1 ? 0 : CONFIG.cols - 1;
+        let dir = owner === 1 ? 1 : -1;
+        
+        for (let r = 0; r < CONFIG.rows; r++) {
+            for (let i = 0; i < inputs[r]; i++) {
+                state.activePulses.push({
+                    id: Math.random().toString(36).substr(2, 9),
+                    owner: owner,
+                    align: owner,
+                    r: r, c: startCol,           
+                    prevR: r, prevC: startCol,   
+                    nextR: r, nextC: startCol, 
+                    dir: dir,
+                    delay: i * 8, 
+                    dead: false
+                });
+            }
+        }
+    }
+}
+
+/**
+ * Input Handling (Keyboard)
+ */
+window.addEventListener('keydown', (e) => {
+    if (state.phase === 'start' && e.code === 'Space') {
+        resetGame(false); 
+        return;
+    }
+
+    if (state.phase !== 'placing') return;
+
+    // Player 1
+    if (e.key === 'w' || e.key === 'W') {
+        if (state.p1.cursor > 0) state.p1.cursor--;
+    } else if (e.key === 's' || e.key === 'S') {
+        if (state.p1.cursor < CONFIG.rows - 1) state.p1.cursor++;
+    } else if (e.key === 'd' || e.key === 'D') {
+        if (state.p1.pulses > 0) {
+            state.p1.inputs[state.p1.cursor]++;
+            state.p1.pulses--;
+        }
+    } else if (e.key === 'a' || e.key === 'A') {
+        if (state.p1.inputs[state.p1.cursor] > 0) {
+            state.p1.inputs[state.p1.cursor]--;
+            state.p1.pulses++;
+        }
+    }
+
+    // Player 2
+    if (e.key === 'ArrowUp') {
+        if (state.p2.cursor > 0) state.p2.cursor--;
+    } else if (e.key === 'ArrowDown') {
+        if (state.p2.cursor < CONFIG.rows - 1) state.p2.cursor++;
+    } else if (e.key === 'ArrowLeft') {
+        if (state.p2.pulses > 0) {
+            state.p2.inputs[state.p2.cursor]++;
+            state.p2.pulses--;
+        }
+    } else if (e.key === 'ArrowRight') {
+        if (state.p2.inputs[state.p2.cursor] > 0) {
+            state.p2.inputs[state.p2.cursor]--;
+            state.p2.pulses++;
+        }
+    }
+
+    updateUI();
+});
+
+/**
+ * Input Handling (Touch & Mouse for iPads/Tablets)
+ */
+canvas.addEventListener('pointerdown', (e) => {
+    // Verhindert Textmarkierung/Scrollen beim wilden tippen
+    e.preventDefault(); 
+    
+    if (state.phase === 'start') {
+        resetGame(false); 
+        return;
+    }
+
+    if (state.phase !== 'placing') return;
+
+    // Berechne Touch/Klick-Koordinaten relativ zur Canvas-Skalierung
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+
+    // Finde die anvisierte Reihe (Y-Achse)
+    const r = Math.round((y - CONFIG.offsetY) / CONFIG.cellSizeY);
+
+    if (r >= 0 && r < CONFIG.rows) {
+        
+        // --- SPIELER 1 (Linke Seite) ---
+        // Wenn Touch im linken Bereich passiert
+        if (x < CONFIG.offsetX + 40) {
+            state.p1.cursor = r; // Cursor visuell nachziehen
+            
+            if (x < CONFIG.offsetX - 10) {
+                // Berührung weiter links (auf den gestapelten Impulsen) -> ENTFERNEN
+                if (state.p1.inputs[r] > 0) {
+                    state.p1.inputs[r]--;
+                    state.p1.pulses++;
+                }
+            } else {
+                // Berührung direkt auf dem Node -> HINZUFÜGEN
+                if (state.p1.pulses > 0) {
+                    state.p1.inputs[r]++;
+                    state.p1.pulses--;
+                }
+            }
+            updateUI();
+        }
+        
+        // --- SPIELER 2 (Rechte Seite) ---
+        const p2NodeX = CONFIG.offsetX + (CONFIG.cols - 1) * CONFIG.cellSizeX;
+        // Wenn Touch im rechten Bereich passiert
+        if (x > p2NodeX - 40) {
+            state.p2.cursor = r; // Cursor visuell nachziehen
+
+            if (x > p2NodeX + 10) {
+                // Berührung weiter rechts (auf den gestapelten Impulsen) -> ENTFERNEN
+                if (state.p2.inputs[r] > 0) {
+                    state.p2.inputs[r]--;
+                    state.p2.pulses++;
+                }
+            } else {
+                // Berührung direkt auf dem Node -> HINZUFÜGEN
+                if (state.p2.pulses > 0) {
+                    state.p2.inputs[r]++;
+                    state.p2.pulses--;
+                }
+            }
+            updateUI();
+        }
+    }
+});
+
+/**
+ * Game Loop & Logic
+ */
+let lastTime = performance.now();
+function loop(time) {
+    let dt = (time - lastTime) / 1000;
+    lastTime = time;
+
+    update(dt);
+    draw();
+    
+    requestAnimationFrame(loop);
+}
+
+function createExplosion(x, y, color, sizeMultiplier = 1) {
+    let count = 10 * sizeMultiplier;
+    for (let i = 0; i < count; i++) {
+        state.particles.push({
+            x: x, y: y,
+            vx: (Math.random() - 0.5) * 6 * sizeMultiplier,
+            vy: (Math.random() - 0.5) * 6 * sizeMultiplier,
+            life: 1.0,
+            color: color
+        });
+    }
+}
+
+function update(dt) {
+    for (let i = state.particles.length - 1; i >= 0; i--) {
+        let p = state.particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= dt * 2.5;
+        if (p.life <= 0) state.particles.splice(i, 1);
+    }
+
+    if (state.phase === 'placing') {
+        state.timer -= dt;
+        if (state.timer <= 0 || (state.p1.pulses === 0 && state.p2.pulses === 0 && state.timer < CONFIG.placeTime - 1)) {
+            state.phase = 'simulating';
+            state.timer = 0;
+            updateUI();
+            buildPulses();
+        } else {
+            updateUI();
+        }
+    } 
+    else if (state.phase === 'simulating') {
+        state.animTick++;
+        
+        if (state.animTick >= CONFIG.ticksPerStep) {
+            state.animTick = 0;
+            executeSimulationStep();
+            
+            if (state.activePulses.filter(p => !p.dead).length === 0) {
+                endGame();
+            }
+            updateUI();
+        }
+    }
+}
+
+function executeSimulationStep() {
+    let living = state.activePulses.filter(p => !p.dead);
+    
+    living.forEach(p => {
+        if (p.delay > 0) {
+            p.delay--;
+            if (p.delay <= 0 && p.nextC === p.c) {
+                p.nextR = p.r;
+                p.nextC = p.c + p.dir;
+            }
+        } else {
+            let oldR = p.r;
+            let oldC = p.c;
+
+            p.prevR = p.r; 
+            p.prevC = p.c;
+            p.r = p.nextR; 
+            p.c = p.nextC;
+
+            if (oldR !== p.r || oldC !== p.c) {
+                state.paths.push({
+                    r1: oldR, c1: oldC,
+                    r2: p.r, c2: p.c,
+                    owner: p.align
+                });
+            }
+        }
+    });
+
+    let active = living.filter(p => p.delay <= 0);
+
+    for (let i = 0; i < active.length; i++) {
+        for (let j = i + 1; j < active.length; j++) {
+            let pA = active[i];
+            let pB = active[j];
+            if (pA.dead || pB.dead) continue;
+
+            let sameCell = (pA.r === pB.r && pA.c === pB.c);
+            let crossed = (pA.prevR === pB.r && pA.prevC === pB.c && pB.prevR === pA.r && pB.prevC === pA.c);
+
+            if ((sameCell || crossed) && pA.align !== pB.align) {
+                pA.dead = true;
+                pB.dead = true;
+                let x = CONFIG.offsetX + pA.c * CONFIG.cellSizeX;
+                let y = CONFIG.offsetY + pA.r * CONFIG.cellSizeY;
+                if(crossed) {
+                     x -= (pA.dir * CONFIG.cellSizeX * 0.5); 
+                }
+                createExplosion(x, y, '#ffffff', 1.5);
+            }
+        }
+    }
+
+    let newSpawns = [];
+    active.forEach(p => {
+        if (p.dead) return;
+
+        let x = CONFIG.offsetX + p.c * CONFIG.cellSizeX;
+        let y = CONFIG.offsetY + p.r * CONFIG.cellSizeY;
+
+        if (p.c === CONFIG.coreCol) {
+            state.cores[p.r] = p.align;
+            p.dead = true;
+            createExplosion(x, y, p.align === 1 ? CONFIG.colors.p1 : CONFIG.colors.p2, 2);
+            return;
+        }
+
+        let cell = state.board[p.r][p.c];
+        if (cell) {
+            cell.owner = p.align;
+        }
+
+        if (cell.type === 'terminator') {
+            p.dead = true;
+            createExplosion(x, y, CONFIG.colors.terminator, 0.8);
+            return;
+        } 
+        else if (cell.type === 'inverter') {
+            p.align = p.align === 1 ? 2 : 1; 
+        } 
+        else if (cell.type === 'splitter_up' && p.r > 0) {
+            newSpawns.push({
+                id: Math.random().toString(36),
+                owner: p.owner, align: p.align,
+                r: p.r, c: p.c,
+                prevR: p.r, prevC: p.c,
+                nextR: p.r - 1, nextC: p.c + p.dir, 
+                dir: p.dir, delay: 0, dead: false
+            });
+        } 
+        else if (cell.type === 'splitter_down' && p.r < CONFIG.rows - 1) {
+            newSpawns.push({
+                id: Math.random().toString(36),
+                owner: p.owner, align: p.align,
+                r: p.r, c: p.c,
+                prevR: p.r, prevC: p.c,
+                nextR: p.r + 1, nextC: p.c + p.dir, 
+                dir: p.dir, delay: 0, dead: false
+            });
+        }
+
+        p.nextR = p.r;
+        p.nextC = p.c + p.dir;
+    });
+
+    state.activePulses.push(...newSpawns);
+}
+
+function endGame() {
+    state.phase = 'end';
+    
+    let score1 = state.cores.filter(c => c === 1).length;
+    let score2 = state.cores.filter(c => c === 2).length;
+    
+    let title = "";
+    let sub = "";
+    let titleClass = "";
+
+    if (score1 > score2) {
+        title = "SPIELER 1 GEWINNT";
+        sub = "Das System wurde vom Cyan-Netzwerk übernommen.";
+        titleClass = "glow-text-p1";
+    } else if (score2 > score1) {
+        title = "SPIELER 2 GEWINNT";
+        sub = "Das System wurde vom Magenta-Netzwerk übernommen.";
+        titleClass = "glow-text-p2";
+    } else {
+        title = "UNENTSCHIEDEN";
+        sub = "System-Deadlock. Niemand gewinnt.";
+        titleClass = "glow-text-neutral";
+    }
+
+    const titleEl = document.getElementById('overlay-title');
+    titleEl.innerText = title;
+    titleEl.className = `text-6xl mb-4 font-bold tracking-wider ${titleClass}`;
+    document.getElementById('overlay-subtitle').innerText = sub;
+    
+    document.getElementById('overlay-msg').classList.remove('hidden');
+    document.getElementById('ui-status').innerHTML = "VERBINDUNG GETRENNT<br><button onclick='resetGame(true)' class='mt-1 text-sm text-white underline hover:text-yellow-300'>NÄCHSTES DUELL STARTEN</button>";
+    document.getElementById('ui-status').className = "text-xl text-gray-400 font-bold bg-gray-900 px-6 py-2 rounded-lg border border-gray-600 shadow-none text-center";
+}
+
+function updateUI() {
+    document.getElementById('ui-p1-pulses').innerText = state.p1.pulses;
+    document.getElementById('ui-p2-pulses').innerText = state.p2.pulses;
+    
+    document.getElementById('ui-p1-score').innerText = state.cores.filter(c=>c===1).length;
+    document.getElementById('ui-p2-score').innerText = state.cores.filter(c=>c===2).length;
+    
+    document.getElementById('ui-round').innerText = state.roundCount;
+
+    if (state.phase === 'placing') {
+        document.getElementById('ui-timer').innerText = Math.max(0, state.timer).toFixed(1);
+        document.getElementById('ui-status').innerText = "SYSTEM-EINBRUCH: IMPULSE SETZEN";
+        document.getElementById('ui-status').className = "text-xl text-yellow-400 font-bold bg-gray-900 px-6 py-2 rounded-lg border border-yellow-600 shadow-[0_0_15px_rgba(255,200,0,0.3)] text-center";
+    } else if (state.phase === 'simulating') {
+        document.getElementById('ui-status').innerText = "SYSTEM-SIMULATION LÄUFT...";
+        document.getElementById('ui-status').className = "text-xl text-red-400 font-bold bg-gray-900 px-6 py-2 rounded-lg border border-red-600 shadow-[0_0_15px_rgba(255,0,0,0.3)] text-center";
+    }
+}
+
+/**
+ * Rendering
+ */
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (state.phase === 'start') return;
+
+    drawBoard();
+    if (state.phase === 'placing') {
+        drawCursors();
+    }
+    drawPulses();
+    drawParticles();
+}
+
+function drawBoard() {
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    for (let r = 0; r < CONFIG.rows; r++) {
+        let y = CONFIG.offsetY + r * CONFIG.cellSizeY;
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = CONFIG.colors.line;
+        ctx.beginPath();
+        ctx.moveTo(CONFIG.offsetX, y);
+        ctx.lineTo(CONFIG.offsetX + (CONFIG.cols - 1) * CONFIG.cellSizeX, y);
+        ctx.stroke();
+    }
+
+    state.paths.forEach(path => {
+        let x1 = CONFIG.offsetX + path.c1 * CONFIG.cellSizeX;
+        let y1 = CONFIG.offsetY + path.r1 * CONFIG.cellSizeY;
+        let x2 = CONFIG.offsetX + path.c2 * CONFIG.cellSizeX;
+        let y2 = CONFIG.offsetY + path.r2 * CONFIG.cellSizeY;
+
+        ctx.strokeStyle = path.owner === 1 ? CONFIG.colors.p1 : CONFIG.colors.p2;
+        ctx.lineWidth = 4;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = ctx.strokeStyle;
+        
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+    });
+    ctx.shadowBlur = 0;
+
+    for (let r = 0; r < CONFIG.rows; r++) {
+        let y = CONFIG.offsetY + r * CONFIG.cellSizeY;
+        for (let c = 0; c < CONFIG.cols; c++) {
+            let cell = state.board[r][c];
+            let x = CONFIG.offsetX + c * CONFIG.cellSizeX;
+
+            if (cell.owner !== 0 && cell.type !== 'none') {
+                ctx.fillStyle = cell.owner === 1 ? 'rgba(0, 255, 255, 0.25)' : 'rgba(255, 0, 255, 0.25)';
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = cell.owner === 1 ? CONFIG.colors.p1 : CONFIG.colors.p2;
+                ctx.beginPath();
+                ctx.arc(x, y, 16, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+
+            if (cell.type === 'inverter') {
+                ctx.fillStyle = CONFIG.colors.bg;
+                ctx.strokeStyle = CONFIG.colors.inverter;
+                ctx.lineWidth = 2;
+                ctx.shadowBlur = 8; ctx.shadowColor = CONFIG.colors.inverter;
+                
+                ctx.beginPath();
+                ctx.moveTo(x, y - 10); ctx.lineTo(x + 10, y);
+                ctx.lineTo(x, y + 10); ctx.lineTo(x - 10, y);
+                ctx.closePath();
+                ctx.fill(); ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(x - 4, y - 4); ctx.lineTo(x + 2, y + 2);
+                ctx.lineTo(x - 2, y + 2); ctx.lineTo(x + 4, y + 6);
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            } 
+            else if (cell.type === 'terminator') {
+                ctx.strokeStyle = CONFIG.colors.terminator;
+                ctx.lineWidth = 3;
+                ctx.shadowBlur = 5; ctx.shadowColor = CONFIG.colors.terminator;
+                ctx.beginPath();
+                ctx.moveTo(x - 6, y - 6); ctx.lineTo(x + 6, y + 6);
+                ctx.moveTo(x - 6, y + 6); ctx.lineTo(x + 6, y - 6);
+                ctx.stroke();
+                
+                ctx.lineWidth = 1;
+                ctx.strokeRect(x - 10, y - 10, 20, 20);
+                ctx.shadowBlur = 0;
+            }
+            else if (cell.type === 'splitter_up') {
+                ctx.strokeStyle = CONFIG.colors.splitter;
+                ctx.lineWidth = 2;
+                ctx.shadowBlur = 5; ctx.shadowColor = CONFIG.colors.splitter;
+                
+                ctx.fillStyle = CONFIG.colors.splitter;
+                ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI*2); ctx.fill();
+
+                let dirX = (c < CONFIG.coreCol) ? 1 : -1;
+                let endX = x + (dirX * CONFIG.cellSizeX);
+                let endY = y - CONFIG.cellSizeY;
+
+                ctx.beginPath();
+                ctx.moveTo(x, y); 
+                ctx.lineTo(endX, endY);
+                
+                let midX = (x + endX) / 2;
+                let midY = (y + endY) / 2;
+                let angle = Math.atan2(endY - y, endX - x);
+                
+                ctx.moveTo(midX, midY);
+                ctx.lineTo(midX - 8 * Math.cos(angle - Math.PI/6), midY - 8 * Math.sin(angle - Math.PI/6));
+                ctx.moveTo(midX, midY);
+                ctx.lineTo(midX - 8 * Math.cos(angle + Math.PI/6), midY - 8 * Math.sin(angle + Math.PI/6));
+                ctx.stroke();
+
+                ctx.beginPath(); ctx.arc(endX, endY, 3, 0, Math.PI*2); ctx.fill();
+                
+                ctx.shadowBlur = 0;
+            }
+            else if (cell.type === 'splitter_down') {
+                ctx.strokeStyle = CONFIG.colors.splitter;
+                ctx.lineWidth = 2;
+                ctx.shadowBlur = 5; ctx.shadowColor = CONFIG.colors.splitter;
+                
+                ctx.fillStyle = CONFIG.colors.splitter;
+                ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI*2); ctx.fill();
+
+                let dirX = (c < CONFIG.coreCol) ? 1 : -1;
+                let endX = x + (dirX * CONFIG.cellSizeX);
+                let endY = y + CONFIG.cellSizeY;
+
+                ctx.beginPath();
+                ctx.moveTo(x, y); 
+                ctx.lineTo(endX, endY);
+                
+                let midX = (x + endX) / 2;
+                let midY = (y + endY) / 2;
+                let angle = Math.atan2(endY - y, endX - x);
+                
+                ctx.moveTo(midX, midY);
+                ctx.lineTo(midX - 8 * Math.cos(angle - Math.PI/6), midY - 8 * Math.sin(angle - Math.PI/6));
+                ctx.moveTo(midX, midY);
+                ctx.lineTo(midX - 8 * Math.cos(angle + Math.PI/6), midY - 8 * Math.sin(angle + Math.PI/6));
+                ctx.stroke();
+
+                ctx.beginPath(); ctx.arc(endX, endY, 3, 0, Math.PI*2); ctx.fill();
+                
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        let drawInputStack = (c, count, color, direction) => {
+            let x = CONFIG.offsetX + c * CONFIG.cellSizeX;
+            ctx.fillStyle = CONFIG.colors.line;
+            ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.fill();
+            
+            for (let i = 0; i < count; i++) {
+                ctx.fillStyle = color;
+                ctx.shadowBlur = 10; ctx.shadowColor = color;
+                let offset = direction === 1 ? -15 - (i * 10) : 15 + (i * 10);
+                ctx.beginPath(); ctx.arc(x + offset, y, 4, 0, Math.PI * 2); ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+        };
+
+        if (state.phase === 'placing') {
+            drawInputStack(0, state.p1.inputs[r], CONFIG.colors.p1, 1);
+            drawInputStack(CONFIG.cols - 1, state.p2.inputs[r], CONFIG.colors.p2, -1);
+        } else if (state.phase === 'simulating') {
+            let p1Delayed = state.activePulses.filter(p => !p.dead && p.owner === 1 && p.delay > 0 && p.r === r).length;
+            let p2Delayed = state.activePulses.filter(p => !p.dead && p.owner === 2 && p.delay > 0 && p.r === r).length;
+            drawInputStack(0, p1Delayed, CONFIG.colors.p1, 1);
+            drawInputStack(CONFIG.cols - 1, p2Delayed, CONFIG.colors.p2, -1);
+        }
+    }
+
+    for (let r = 0; r < CONFIG.rows; r++) {
+        let x = CONFIG.offsetX + CONFIG.coreCol * CONFIG.cellSizeX;
+        let y = CONFIG.offsetY + r * CONFIG.cellSizeY;
+        
+        let coreOwner = state.cores[r];
+        let color = coreOwner === 1 ? CONFIG.colors.p1 : (coreOwner === 2 ? CONFIG.colors.p2 : CONFIG.colors.coreEmpty);
+        
+        ctx.fillStyle = color;
+        if (coreOwner !== 0) {
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = color;
+        }
+
+        ctx.beginPath();
+        ctx.rect(x - 12, y - 12, 24, 24);
+        ctx.fill();
+        ctx.strokeStyle = coreOwner !== 0 ? '#fff' : '#666';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x - 12, y - 12, 24, 24);
+        
+        ctx.fillStyle = coreOwner !== 0 ? '#fff' : '#222';
+        ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI*2); ctx.fill();
+        ctx.shadowBlur = 0;
+    }
+}
+
+function drawCursors() {
+    let t = Date.now() / 150;
+    let blink = Math.sin(t) > 0 ? 1 : 0.4;
+
+    let p1y = CONFIG.offsetY + state.p1.cursor * CONFIG.cellSizeY;
+    ctx.strokeStyle = `rgba(0, 255, 255, ${blink})`;
+    ctx.lineWidth = 3;
+    ctx.shadowBlur = 10; ctx.shadowColor = CONFIG.colors.p1;
+    ctx.strokeRect(CONFIG.offsetX - 12, p1y - 12, 24, 24);
+
+    let p2y = CONFIG.offsetY + state.p2.cursor * CONFIG.cellSizeY;
+    ctx.strokeStyle = `rgba(255, 0, 255, ${blink})`;
+    ctx.shadowColor = CONFIG.colors.p2;
+    ctx.strokeRect(CONFIG.offsetX + (CONFIG.cols - 1) * CONFIG.cellSizeX - 12, p2y - 12, 24, 24);
+    
+    ctx.shadowBlur = 0;
+}
+
+function drawPulses() {
+    if (state.phase !== 'simulating') return;
+
+    let subProgress = state.animTick / CONFIG.ticksPerStep;
+
+    state.activePulses.forEach(p => {
+        if (p.dead || p.delay > 0) return;
+
+        let curX = CONFIG.offsetX + p.c * CONFIG.cellSizeX;
+        let curY = CONFIG.offsetY + p.r * CONFIG.cellSizeY;
+        let nextX = CONFIG.offsetX + p.nextC * CONFIG.cellSizeX;
+        let nextY = CONFIG.offsetY + p.nextR * CONFIG.cellSizeY;
+
+        let x = curX + (nextX - curX) * subProgress;
+        let y = curY + (nextY - curY) * subProgress;
+
+        let color = p.align === 1 ? CONFIG.colors.p1 : CONFIG.colors.p2;
+
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = color;
+        
+        ctx.beginPath();
+        ctx.arc(x, y, 5, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(x, y, 10, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.shadowBlur = 0;
+    });
+}
+
+function drawParticles() {
+    state.particles.forEach(p => {
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.life;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 4 * p.life, 0, Math.PI * 2);
+        ctx.fill();
+    });
+    ctx.globalAlpha = 1.0;
+}
+
+// Start Main Loop
+requestAnimationFrame(loop);
+
+</script>
+</body>
+</html>
