@@ -1296,12 +1296,13 @@
 
             if (state.phase === 'end' && state.lastWinTitle) {
                 ctx.fillStyle = state.lastWinColor;
-                ctx.font = 'bold 36px Share Tech Mono';
+                let fontSize = Math.min(36, canvas.width / (state.lastWinTitle.length * 0.65));
+                ctx.font = `bold ${fontSize}px Share Tech Mono`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.shadowBlur = (10) * GLOW;
                 ctx.shadowColor = state.lastWinColor;
-                let textY = CONFIG.offsetY + (CONFIG.rows - 1) * CONFIG.cellSizeY + 70;
+                let textY = Math.max(fontSize, canvas.height * 0.1);
                 ctx.fillText(state.lastWinTitle, canvas.width / 2, textY);
                 ctx.shadowBlur = (0) * GLOW;
             }
