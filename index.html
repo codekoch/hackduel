@@ -90,9 +90,21 @@
             body { padding-top: 0 !important; padding-bottom: 0 !important; }
             .mt-1, .mt-2, .mb-1, .mb-2 { margin-top: 0 !important; margin-bottom: 0 !important; }
             .pt-2 { padding-top: 2px !important; }
-            h1 { font-size: 1.1rem !important; }
-            h2 { font-size: 0.9rem !important; }
-            #ui-status { padding-top: 2px !important; padding-bottom: 2px !important; }
+            h1 { font-size: 1.2rem !important; margin-bottom: 0 !important; }
+            h2 { font-size: 0.8rem !important; margin-bottom: 0 !important; }
+            #ui-status { padding-top: 2px !important; padding-bottom: 2px !important; font-size: 0.7rem !important; }
+            #ui-timer { font-size: 1rem !important; margin-top: 0 !important; }
+        }
+
+        @media (max-width: 767px) {
+            h1 { font-size: 1.3rem !important; margin-bottom: 2px !important; }
+            h2 { font-size: 0.8rem !important; margin-bottom: 0 !important; }
+            .pt-2 { padding-top: 2px !important; }
+            .px-2 { padding-left: 4px !important; padding-right: 4px !important; }
+            #ui-status { padding-top: 2px !important; padding-bottom: 2px !important; font-size: 0.75rem !important; }
+            .text-sm { font-size: 0.75rem !important; line-height: 1 !important; }
+            .text-xs { font-size: 0.65rem !important; line-height: 1 !important; }
+            .mt-1 { margin-top: 2px !important; }
         }
     </style>
 </head>
@@ -144,7 +156,7 @@
 
     <!-- Game Canvas Container -->
     <div class="relative z-10 w-full flex-1 min-h-0 flex justify-center items-center p-0 md:px-2 md:py-2">
-        <canvas id="gameCanvas" width="1250" height="720" class="w-full h-full max-w-full max-h-full md:w-auto md:h-auto md:object-contain"></canvas>
+        <canvas id="gameCanvas" width="1250" height="720" class="w-full h-full max-w-full max-h-full object-contain"></canvas>
 
         <!-- Start Menu -->
         <div id="start-menu"
@@ -324,6 +336,7 @@
          */
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+        const GLOW = window.innerWidth <= 768 ? 0 : 1;
 
         const CONFIG = {
             rows: 10, cols: 15, coreCol: 7, maxPulses: 6, placeTime: 15,
@@ -1111,10 +1124,10 @@
                 let x1 = CONFIG.offsetX + path.c1 * CONFIG.cellSizeX; let y1 = CONFIG.offsetY + path.r1 * CONFIG.cellSizeY;
                 let x2 = CONFIG.offsetX + path.c2 * CONFIG.cellSizeX; let y2 = CONFIG.offsetY + path.r2 * CONFIG.cellSizeY;
                 ctx.strokeStyle = path.owner === 1 ? CONFIG.colors.p1 : CONFIG.colors.p2;
-                ctx.lineWidth = 4; ctx.shadowBlur = 10; ctx.shadowColor = ctx.strokeStyle;
+                ctx.lineWidth = 4; ctx.shadowBlur = (10) * GLOW; ctx.shadowColor = ctx.strokeStyle;
                 ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
             });
-            ctx.shadowBlur = 0;
+            ctx.shadowBlur = (0) * GLOW;
 
             for (let r = 0; r < CONFIG.rows; r++) {
                 let y = CONFIG.offsetY + r * CONFIG.cellSizeY;
@@ -1127,9 +1140,9 @@
                     // Highlight owned nodes
                     if (cell.owner !== 0 && (!cell.hidden || cell.revealed)) {
                         ctx.fillStyle = cell.owner === 1 ? 'rgba(0, 255, 255, 0.25)' : 'rgba(255, 0, 255, 0.25)';
-                        ctx.shadowBlur = 15; ctx.shadowColor = cell.owner === 1 ? CONFIG.colors.p1 : CONFIG.colors.p2;
+                        ctx.shadowBlur = (15) * GLOW; ctx.shadowColor = cell.owner === 1 ? CONFIG.colors.p1 : CONFIG.colors.p2;
                         ctx.beginPath(); ctx.arc(x, y, 16, 0, Math.PI * 2); ctx.fill();
-                        ctx.shadowBlur = 0;
+                        ctx.shadowBlur = (0) * GLOW;
                     }
 
                     // Stealth Rendering
@@ -1144,30 +1157,30 @@
 
                     if (cell.type === 'inverter') {
                         ctx.fillStyle = CONFIG.colors.bg; ctx.strokeStyle = CONFIG.colors.inverter;
-                        ctx.lineWidth = 2; ctx.shadowBlur = 8; ctx.shadowColor = CONFIG.colors.inverter;
+                        ctx.lineWidth = 2; ctx.shadowBlur = (8) * GLOW; ctx.shadowColor = CONFIG.colors.inverter;
                         ctx.beginPath(); ctx.moveTo(x, y - 10); ctx.lineTo(x + 10, y); ctx.lineTo(x, y + 10); ctx.lineTo(x - 10, y); ctx.closePath();
                         ctx.fill(); ctx.stroke();
                         ctx.beginPath(); ctx.moveTo(x - 4, y - 4); ctx.lineTo(x + 2, y + 2); ctx.lineTo(x - 2, y + 2); ctx.lineTo(x + 4, y + 6); ctx.stroke();
-                        ctx.shadowBlur = 0;
+                        ctx.shadowBlur = (0) * GLOW;
                     }
                     else if (cell.type === 'terminator') {
-                        ctx.strokeStyle = CONFIG.colors.terminator; ctx.lineWidth = 3; ctx.shadowBlur = 5; ctx.shadowColor = CONFIG.colors.terminator;
+                        ctx.strokeStyle = CONFIG.colors.terminator; ctx.lineWidth = 3; ctx.shadowBlur = (5) * GLOW; ctx.shadowColor = CONFIG.colors.terminator;
                         ctx.beginPath(); ctx.moveTo(x - 6, y - 6); ctx.lineTo(x + 6, y + 6); ctx.moveTo(x - 6, y + 6); ctx.lineTo(x + 6, y - 6); ctx.stroke();
                         ctx.lineWidth = 1; ctx.strokeRect(x - 10, y - 10, 20, 20);
-                        ctx.shadowBlur = 0;
+                        ctx.shadowBlur = (0) * GLOW;
                     }
                     else if (cell.type === 'firewall') {
-                        ctx.strokeStyle = CONFIG.colors.firewall; ctx.lineWidth = 3; ctx.shadowColor = CONFIG.colors.firewall; ctx.shadowBlur = 10;
+                        ctx.strokeStyle = CONFIG.colors.firewall; ctx.lineWidth = 3; ctx.shadowColor = CONFIG.colors.firewall; ctx.shadowBlur = (10) * GLOW;
                         ctx.beginPath(); ctx.moveTo(x - 4, y - 14); ctx.lineTo(x - 4, y + 14); ctx.moveTo(x + 4, y - 14); ctx.lineTo(x + 4, y + 14);
                         ctx.moveTo(x - 8, y - 7); ctx.lineTo(x + 8, y - 7); ctx.moveTo(x - 8, y + 7); ctx.lineTo(x + 8, y + 7); ctx.stroke();
-                        ctx.shadowBlur = 0;
+                        ctx.shadowBlur = (0) * GLOW;
                     }
                     else if (cell.type.startsWith('splitter_') || cell.type.startsWith('router_')) {
                         let isRouter = cell.type.startsWith('router_');
                         let isUp = cell.type.endsWith('_up');
                         let color = isRouter ? CONFIG.colors.router : CONFIG.colors.splitter;
 
-                        ctx.strokeStyle = color; ctx.lineWidth = isRouter ? 3 : 2; ctx.shadowBlur = 5; ctx.shadowColor = color;
+                        ctx.strokeStyle = color; ctx.lineWidth = isRouter ? 3 : 2; ctx.shadowBlur = (5) * GLOW; ctx.shadowColor = color;
 
                         let dirX = (c < CONFIG.coreCol) ? 1 : -1;
                         let endX = x + (dirX * CONFIG.cellSizeX);
@@ -1189,7 +1202,7 @@
                         if (!isRouter) {
                             ctx.beginPath(); ctx.arc(endX, endY, 3, 0, Math.PI * 2); ctx.fill();
                         }
-                        ctx.shadowBlur = 0;
+                        ctx.shadowBlur = (0) * GLOW;
                     }
                 }
 
@@ -1197,9 +1210,9 @@
                     let x = CONFIG.offsetX + c * CONFIG.cellSizeX;
                     ctx.fillStyle = CONFIG.colors.line; ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.fill();
                     for (let i = 0; i < count; i++) {
-                        ctx.fillStyle = color; ctx.shadowBlur = 10; ctx.shadowColor = color;
+                        ctx.fillStyle = color; ctx.shadowBlur = (10) * GLOW; ctx.shadowColor = color;
                         let offset = direction === 1 ? -15 - (i * 10) : 15 + (i * 10);
-                        ctx.beginPath(); ctx.arc(x + offset, y, 4, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+                        ctx.beginPath(); ctx.arc(x + offset, y, 4, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = (0) * GLOW;
                     }
                 };
 
@@ -1238,7 +1251,7 @@
                     let color = isP1 ? CONFIG.colors.p1 : CONFIG.colors.p2;
                     let isLocked = Math.abs(ch) < maxHits; // Teilweise erobert (braucht noch 1 Hit)
 
-                    ctx.shadowBlur = isLocked ? 5 : 20;
+                    ctx.shadowBlur = (isLocked ? 5 : 20) * GLOW;
                     ctx.shadowColor = color; ctx.strokeStyle = color; ctx.lineWidth = 2;
 
                     if (isLocked) {
@@ -1254,7 +1267,7 @@
                         ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill();
                     }
                 }
-                ctx.shadowBlur = 0;
+                ctx.shadowBlur = (0) * GLOW;
             }
 
             if (state.phase === 'end' && state.lastWinTitle) {
@@ -1262,11 +1275,11 @@
                 ctx.font = 'bold 36px Share Tech Mono';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.shadowBlur = 10;
+                ctx.shadowBlur = (10) * GLOW;
                 ctx.shadowColor = state.lastWinColor;
                 let textY = CONFIG.offsetY + (CONFIG.rows - 1) * CONFIG.cellSizeY + 70;
                 ctx.fillText(state.lastWinTitle, canvas.width / 2, textY);
-                ctx.shadowBlur = 0;
+                ctx.shadowBlur = (0) * GLOW;
             }
         }
 
@@ -1275,14 +1288,14 @@
             let blink = Math.sin(t) > 0 ? 1 : 0.4;
 
             let p1y = CONFIG.offsetY + state.p1.cursor * CONFIG.cellSizeY;
-            ctx.strokeStyle = `rgba(0, 255, 255, ${blink})`; ctx.lineWidth = 3; ctx.shadowBlur = 10; ctx.shadowColor = CONFIG.colors.p1;
+            ctx.strokeStyle = `rgba(0, 255, 255, ${blink})`; ctx.lineWidth = 3; ctx.shadowBlur = (10) * GLOW; ctx.shadowColor = CONFIG.colors.p1;
             ctx.strokeRect(CONFIG.offsetX - 12, p1y - 12, 24, 24);
 
             let p2y = CONFIG.offsetY + state.p2.cursor * CONFIG.cellSizeY;
             ctx.strokeStyle = `rgba(255, 0, 255, ${blink})`; ctx.shadowColor = CONFIG.colors.p2;
             ctx.strokeRect(CONFIG.offsetX + (CONFIG.cols - 1) * CONFIG.cellSizeX - 12, p2y - 12, 24, 24);
 
-            ctx.shadowBlur = 0;
+            ctx.shadowBlur = (0) * GLOW;
         }
 
         function drawPulses() {
@@ -1301,16 +1314,16 @@
                 let color = p.align === 1 ? CONFIG.colors.p1 : CONFIG.colors.p2;
 
                 // Draw the in-progress line segment behind the pulse
-                ctx.strokeStyle = color; ctx.lineWidth = 4; ctx.shadowBlur = 10; ctx.shadowColor = color;
+                ctx.strokeStyle = color; ctx.lineWidth = 4; ctx.shadowBlur = (10) * GLOW; ctx.shadowColor = color;
                 ctx.beginPath(); ctx.moveTo(curX, curY); ctx.lineTo(x, y); ctx.stroke();
-                ctx.shadowBlur = 0;
+                ctx.shadowBlur = (0) * GLOW;
 
-                ctx.fillStyle = '#ffffff'; ctx.shadowBlur = 15; ctx.shadowColor = color;
+                ctx.fillStyle = '#ffffff'; ctx.shadowBlur = (15) * GLOW; ctx.shadowColor = color;
                 ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2); ctx.fill();
 
                 ctx.strokeStyle = color; ctx.lineWidth = 2;
                 ctx.beginPath(); ctx.arc(x, y, 10, 0, Math.PI * 2); ctx.stroke();
-                ctx.shadowBlur = 0;
+                ctx.shadowBlur = (0) * GLOW;
             });
         }
 
