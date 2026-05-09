@@ -146,6 +146,20 @@
     <div class="relative z-10 w-full flex-1 min-h-0 flex justify-center items-center p-0 md:px-2 md:py-2">
         <canvas id="gameCanvas" width="1250" height="720" class="w-full h-full max-w-full max-h-full md:w-auto md:h-auto md:object-contain"></canvas>
 
+        <!-- Start Menu -->
+        <div id="start-menu"
+            class="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-md z-40 rounded-lg">
+            <div class="p-4 md:p-8 border-2 border-cyan-600 bg-gray-900/95 rounded-xl w-[95%] max-w-xl text-center shadow-[0_0_50px_rgba(0,255,255,0.2)] flex flex-col items-center">
+                <h1 class="text-4xl md:text-6xl glow-text-neutral mb-8 tracking-widest">HACK DUEL</h1>
+                <div class="flex flex-col gap-4 w-full">
+                    <button onclick="startGame('pvp')" class="w-full px-6 py-3 bg-gray-800 border-2 border-cyan-500 text-cyan-400 hover:bg-cyan-500 hover:text-black font-bold text-xl rounded transition-colors shadow-[0_0_15px_rgba(0,255,255,0.3)]">MENSCH vs MENSCH</button>
+                    <button onclick="startGame('pve-easy')" class="w-full px-6 py-3 bg-gray-800 border-2 border-green-500 text-green-400 hover:bg-green-500 hover:text-black font-bold text-xl rounded transition-colors shadow-[0_0_15px_rgba(0,255,0,0.3)]">MENSCH vs CPU (LEICHT)</button>
+                    <button onclick="startGame('pve-medium')" class="w-full px-6 py-3 bg-gray-800 border-2 border-yellow-500 text-yellow-400 hover:bg-yellow-500 hover:text-black font-bold text-xl rounded transition-colors shadow-[0_0_15px_rgba(255,255,0,0.3)]">MENSCH vs CPU (MITTEL)</button>
+                    <button onclick="startGame('pve-hard')" class="w-full px-6 py-3 bg-gray-800 border-2 border-red-500 text-red-400 hover:bg-red-500 hover:text-black font-bold text-xl rounded transition-colors shadow-[0_0_15px_rgba(255,0,0,0.3)]">MENSCH vs CPU (SCHWER)</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Tutorial Screen -->
         <div id="tutorial-msg"
             class="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-md z-30 rounded-lg hidden">
@@ -322,7 +336,10 @@
         };
 
         let state = {
-            phase: 'tutorial',
+            gameMode: 'pvp',
+            aiCooldown: 0,
+            aiTargetRow: undefined,
+            phase: 'start_menu',
             timer: 0,
             roundCount: 1,
             board: [],
@@ -330,8 +347,8 @@
             p2: { pulses: CONFIG.maxPulses, cursor: 0, inputs: Array(CONFIG.rows).fill(0), totalScore: 0 },
             activePulses: [],
             paths: [],
-            cores: Array(CONFIG.rows).fill(0), // Speichert jetzt die HP (-2 bis +2) 
-            coreMaxHits: Array(CONFIG.rows).fill(1), // Max HP pro Kern
+            cores: Array(CONFIG.rows).fill(0),
+            coreMaxHits: Array(CONFIG.rows).fill(1),
             particles: [],
             animTick: 0,
             lastWinTitle: "",
@@ -530,6 +547,23 @@
             return true;
         }
 
+        function startGame(mode) {
+            state.gameMode = mode;
+            document.getElementById('start-menu').classList.add('hidden');
+            showTutorial(1);
+        }
+
+        function showMainMenu() {
+            state.phase = 'start_menu';
+            state.roundCount = 1;
+            state.p1.totalScore = 0;
+            state.p2.totalScore = 0;
+            document.getElementById('start-menu').classList.remove('hidden');
+            document.getElementById('ui-status').innerText = "SYSTEM BEREIT";
+            document.getElementById('ui-status').className = "relative text-xs md:text-xl text-yellow-400 font-bold bg-gray-900 px-2 py-1 md:px-6 md:py-2 rounded-lg border border-yellow-600 shadow-[0_0_15px_rgba(255,200,0,0.3)] text-center leading-tight";
+            updateUI();
+        }
+
         function closeTutorial() {
             AudioSys.init();
             AudioSys.play('start');
@@ -558,6 +592,8 @@
 
             state.phase = 'placing';
             state.timer = CONFIG.placeTime;
+            state.aiCooldown = 0;
+            state.aiTargetRow = undefined;
             state.p1 = { pulses: CONFIG.maxPulses, cursor: 0, inputs: Array(CONFIG.rows).fill(0), totalScore: oldTotal1 };
             state.p2 = { pulses: CONFIG.maxPulses, cursor: 0, inputs: Array(CONFIG.rows).fill(0), totalScore: oldTotal2 };
             state.activePulses = [];
@@ -644,12 +680,14 @@
                 if (state.p1.inputs[state.p1.cursor] > 0) { state.p1.inputs[state.p1.cursor]--; state.p1.pulses++; AudioSys.play('remove'); } else AudioSys.play('error');
             }
 
-            if (e.key === 'ArrowUp') { if (state.p2.cursor > 0) state.p2.cursor--; }
-            else if (e.key === 'ArrowDown') { if (state.p2.cursor < CONFIG.rows - 1) state.p2.cursor++; }
-            else if (e.key === 'ArrowLeft') {
-                if (state.p2.pulses > 0) { state.p2.inputs[state.p2.cursor]++; state.p2.pulses--; AudioSys.play('place'); } else AudioSys.play('error');
-            } else if (e.key === 'ArrowRight') {
-                if (state.p2.inputs[state.p2.cursor] > 0) { state.p2.inputs[state.p2.cursor]--; state.p2.pulses++; AudioSys.play('remove'); } else AudioSys.play('error');
+            if (state.gameMode === 'pvp') {
+                if (e.key === 'ArrowUp') { if (state.p2.cursor > 0) state.p2.cursor--; }
+                else if (e.key === 'ArrowDown') { if (state.p2.cursor < CONFIG.rows - 1) state.p2.cursor++; }
+                else if (e.key === 'ArrowLeft') {
+                    if (state.p2.pulses > 0) { state.p2.inputs[state.p2.cursor]++; state.p2.pulses--; AudioSys.play('place'); } else AudioSys.play('error');
+                } else if (e.key === 'ArrowRight') {
+                    if (state.p2.inputs[state.p2.cursor] > 0) { state.p2.inputs[state.p2.cursor]--; state.p2.pulses++; AudioSys.play('remove'); } else AudioSys.play('error');
+                }
             }
 
             updateUI();
@@ -681,15 +719,17 @@
                     updateUI();
                 }
 
-                const p2NodeX = CONFIG.offsetX + (CONFIG.cols - 1) * CONFIG.cellSizeX;
-                if (x > p2NodeX - 40) {
-                    state.p2.cursor = r;
-                    if (x > p2NodeX + 40) {
-                        if (state.p2.inputs[r] > 0) { state.p2.inputs[r]--; state.p2.pulses++; AudioSys.play('remove'); } else AudioSys.play('error');
-                    } else {
-                        if (state.p2.pulses > 0) { state.p2.inputs[r]++; state.p2.pulses--; AudioSys.play('place'); } else AudioSys.play('error');
+                if (state.gameMode === 'pvp') {
+                    const p2NodeX = CONFIG.offsetX + (CONFIG.cols - 1) * CONFIG.cellSizeX;
+                    if (x > p2NodeX - 40) {
+                        state.p2.cursor = r;
+                        if (x > p2NodeX + 40) {
+                            if (state.p2.inputs[r] > 0) { state.p2.inputs[r]--; state.p2.pulses++; AudioSys.play('remove'); } else AudioSys.play('error');
+                        } else {
+                            if (state.p2.pulses > 0) { state.p2.inputs[r]++; state.p2.pulses--; AudioSys.play('place'); } else AudioSys.play('error');
+                        }
+                        updateUI();
                     }
-                    updateUI();
                 }
             }
         });
@@ -700,6 +740,7 @@
         let lastTime = performance.now();
         function loop(time) {
             let dt = (time - lastTime) / 1000;
+            if (dt > 0.1) dt = 0.1; // Cap large dt to avoid jumps when tab is inactive
             lastTime = time;
             update(dt);
             draw();
@@ -729,6 +770,11 @@
 
             if (state.phase === 'placing') {
                 state.timer -= dt;
+                
+                if (state.gameMode !== 'pvp') {
+                    updateAI(dt);
+                }
+
                 if (state.timer <= 0 || (state.p1.pulses === 0 && state.p2.pulses === 0 && state.timer < CONFIG.placeTime - 1)) {
                     state.phase = 'simulating';
                     state.timer = 0;
@@ -738,15 +784,79 @@
                 } else updateUI();
             }
             else if (state.phase === 'simulating') {
-                state.animTick++;
+                state.animTick += dt * 60;
                 if (state.animTick >= CONFIG.ticksPerStep) {
-                    state.animTick = 0;
+                    state.animTick -= CONFIG.ticksPerStep;
                     executeSimulationStep();
                     if (state.activePulses.filter(p => !p.dead).length === 0) {
                         AudioSys.setHum(false);
                         endGame();
                     }
                     updateUI();
+                }
+            }
+        }
+
+        function updateAI(dt) {
+            if (state.p2.pulses <= 0) return;
+            
+            state.aiCooldown -= dt;
+            if (state.aiCooldown > 0) return;
+
+            if (state.gameMode === 'pve-easy') state.aiCooldown = 1.0 + Math.random() * 1.0;
+            if (state.gameMode === 'pve-medium') state.aiCooldown = 0.5 + Math.random() * 0.5;
+            if (state.gameMode === 'pve-hard') state.aiCooldown = 0.2 + Math.random() * 0.3;
+
+            if (state.aiTargetRow === undefined || state.p2.cursor === state.aiTargetRow) {
+                if (state.p2.cursor === state.aiTargetRow) {
+                    state.p2.inputs[state.p2.cursor]++;
+                    state.p2.pulses--;
+                    AudioSys.play('place');
+                    state.aiTargetRow = undefined;
+                    return;
+                }
+
+                if (state.gameMode === 'pve-easy') {
+                    state.aiTargetRow = Math.floor(Math.random() * CONFIG.rows);
+                } else if (state.gameMode === 'pve-medium') {
+                    let minPulses = 99;
+                    for(let r=0; r<CONFIG.rows; r++) if(state.p2.inputs[r] < minPulses) minPulses = state.p2.inputs[r];
+                    let candidates = [];
+                    for(let r=0; r<CONFIG.rows; r++) if(state.p2.inputs[r] === minPulses) candidates.push(r);
+                    state.aiTargetRow = candidates[Math.floor(Math.random() * candidates.length)];
+                } else if (state.gameMode === 'pve-hard') {
+                    let bestScore = -999;
+                    let candidates = [];
+                    for(let r=0; r<CONFIG.rows; r++) {
+                        let score = 0;
+                        let hasTerminator = false;
+                        for(let c=CONFIG.cols-1; c>CONFIG.coreCol; c--) {
+                            if(state.board[r][c].type === 'terminator') hasTerminator = true;
+                        }
+                        if (hasTerminator) score -= 10;
+                        score += state.p1.inputs[r] * 2;
+                        if (state.cores[r] > 0) score += 3;
+                        if (state.cores[r] === 0) score += 1;
+                        score -= state.p2.inputs[r] * 2;
+
+                        if (score > bestScore) {
+                            bestScore = score;
+                            candidates = [r];
+                        } else if (score === bestScore) {
+                            candidates.push(r);
+                        }
+                    }
+                    state.aiTargetRow = candidates[Math.floor(Math.random() * candidates.length)];
+                }
+            }
+
+            if (state.aiTargetRow !== undefined) {
+                if (state.p2.cursor < state.aiTargetRow) {
+                    state.p2.cursor++;
+                    state.aiCooldown = 0.1;
+                } else if (state.p2.cursor > state.aiTargetRow) {
+                    state.p2.cursor--;
+                    state.aiCooldown = 0.1;
                 }
             }
         }
@@ -909,19 +1019,30 @@
 
             document.getElementById('ui-timer').classList.add('hidden');
 
-            if (score1 > score2) {
-                state.lastWinTitle = "SPIELER 1 GEWINNT!";
-                state.lastWinColor = CONFIG.colors.p1;
-            } else if (score2 > score1) {
-                state.lastWinTitle = "SPIELER 2 GEWINNT!";
-                state.lastWinColor = CONFIG.colors.p2;
+            if (state.roundCount === 10) {
+                let overall1 = state.p1.totalScore;
+                let overall2 = state.p2.totalScore;
+                if (overall1 > overall2) { state.lastWinTitle = "SPIELER 1 IST DER CHAMPION!"; state.lastWinColor = CONFIG.colors.p1; }
+                else if (overall2 > overall1) { state.lastWinTitle = "SPIELER 2 IST DER CHAMPION!"; state.lastWinColor = CONFIG.colors.p2; }
+                else { state.lastWinTitle = "DAS DUELL ENDET UNENTSCHIEDEN!"; state.lastWinColor = "#ffffff"; }
+                
+                document.getElementById('ui-status').innerHTML = "SYSTEM KONTROLLIERT<div class='absolute top-full left-1/2 -translate-x-1/2 mt-2 md:mt-4 z-50 flex flex-col md:flex-row gap-2 md:gap-4'><button onclick='showMainMenu()' class='px-4 py-2 md:px-6 md:py-3 text-xs md:text-xl text-black bg-white hover:bg-yellow-400 rounded-lg font-bold transition-colors cursor-pointer pointer-events-auto whitespace-nowrap shadow-[0_0_20px_rgba(255,255,255,0.5)]'>ZUM HAUPTMENÜ</button><button onclick='handleNextRound()' class='px-4 py-2 md:px-6 md:py-3 text-xs md:text-xl text-white border-2 border-cyan-400 bg-cyan-900 hover:bg-cyan-400 hover:text-black rounded-lg font-bold transition-colors cursor-pointer pointer-events-auto whitespace-nowrap shadow-[0_0_15px_rgba(0,255,255,0.4)]'>ENDLOS-MODUS</button></div>";
+                document.getElementById('ui-status').className = "relative text-sm md:text-xl text-green-400 font-bold bg-gray-900 px-2 py-1 md:px-6 md:py-2 rounded-lg border border-green-600 shadow-[0_0_15px_rgba(0,255,0,0.5)] text-center leading-tight z-50 pointer-events-auto";
             } else {
-                state.lastWinTitle = "UNENTSCHIEDEN!";
-                state.lastWinColor = "#ffffff";
-            }
+                if (score1 > score2) {
+                    state.lastWinTitle = "SPIELER 1 GEWINNT!";
+                    state.lastWinColor = CONFIG.colors.p1;
+                } else if (score2 > score1) {
+                    state.lastWinTitle = "SPIELER 2 GEWINNT!";
+                    state.lastWinColor = CONFIG.colors.p2;
+                } else {
+                    state.lastWinTitle = "UNENTSCHIEDEN!";
+                    state.lastWinColor = "#ffffff";
+                }
 
-            document.getElementById('ui-status').innerHTML = "VERBINDUNG GETRENNT<div class='absolute top-full left-1/2 -translate-x-1/2 mt-2 md:mt-4 z-50 flex flex-col md:flex-row gap-2 md:gap-4'><button onclick='replayLevel()' class='px-4 py-2 md:px-6 md:py-3 text-xs md:text-xl text-white border-2 border-cyan-400 bg-cyan-900 hover:bg-cyan-400 hover:text-black rounded-lg font-bold transition-colors cursor-pointer pointer-events-auto whitespace-nowrap shadow-[0_0_15px_rgba(0,255,255,0.4)]'>NOCHMAL SPIELEN</button><button onclick='handleNextRound()' class='px-4 py-2 md:px-6 md:py-3 text-xs md:text-xl text-black bg-white hover:bg-yellow-400 rounded-lg font-bold transition-colors cursor-pointer pointer-events-auto whitespace-nowrap shadow-[0_0_20px_rgba(255,255,255,0.5)]'>NÄCHSTES LEVEL</button></div>";
-            document.getElementById('ui-status').className = "relative text-sm md:text-xl text-gray-400 font-bold bg-gray-900 px-2 py-1 md:px-6 md:py-2 rounded-lg border border-gray-600 shadow-none text-center leading-tight z-50 pointer-events-auto";
+                document.getElementById('ui-status').innerHTML = "VERBINDUNG GETRENNT<div class='absolute top-full left-1/2 -translate-x-1/2 mt-2 md:mt-4 z-50 flex flex-col md:flex-row gap-2 md:gap-4'><button onclick='replayLevel()' class='px-4 py-2 md:px-6 md:py-3 text-xs md:text-xl text-white border-2 border-cyan-400 bg-cyan-900 hover:bg-cyan-400 hover:text-black rounded-lg font-bold transition-colors cursor-pointer pointer-events-auto whitespace-nowrap shadow-[0_0_15px_rgba(0,255,255,0.4)]'>NOCHMAL SPIELEN</button><button onclick='handleNextRound()' class='px-4 py-2 md:px-6 md:py-3 text-xs md:text-xl text-black bg-white hover:bg-yellow-400 rounded-lg font-bold transition-colors cursor-pointer pointer-events-auto whitespace-nowrap shadow-[0_0_20px_rgba(255,255,255,0.5)]'>NÄCHSTES LEVEL</button></div>";
+                document.getElementById('ui-status').className = "relative text-sm md:text-xl text-gray-400 font-bold bg-gray-900 px-2 py-1 md:px-6 md:py-2 rounded-lg border border-gray-600 shadow-none text-center leading-tight z-50 pointer-events-auto";
+            }
 
             updateUI();
         }
@@ -1200,8 +1321,7 @@
             });
             ctx.globalAlpha = 1.0;
         }
-
-        showTutorial(1);
+        initBoard();
         requestAnimationFrame(loop);
     </script>
 </body>
