@@ -733,43 +733,61 @@
         /**
          * Input Handling (Touch & Mouse)
          */
+        let activePointers = {};
         canvas.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             if (state.phase !== 'placing') return;
             AudioSys.init();
-
             const rect = canvas.getBoundingClientRect();
             const scaleX = canvas.width / rect.width;
             const scaleY = canvas.height / rect.height;
             const x = (e.clientX - rect.left) * scaleX;
             const y = (e.clientY - rect.top) * scaleY;
             const r = Math.round((y - CONFIG.offsetY) / CONFIG.cellSizeY);
-
             if (r >= 0 && r < CONFIG.rows) {
-                if (x < CONFIG.offsetX + 40) {
-                    state.p1.cursor = r;
-                    if (x < CONFIG.offsetX - 40) {
-                        if (state.p1.inputs[r] > 0) { state.p1.inputs[r]--; state.p1.pulses++; AudioSys.play('remove'); } else AudioSys.play('error');
-                    } else {
-                        if (state.p1.pulses > 0) { state.p1.inputs[r]++; state.p1.pulses--; AudioSys.play('place'); } else AudioSys.play('error');
-                    }
-                    updateUI();
-                }
-
-                if (state.gameMode === 'pvp') {
-                    const p2NodeX = CONFIG.offsetX + (CONFIG.cols - 1) * CONFIG.cellSizeX;
-                    if (x > p2NodeX - 40) {
-                        state.p2.cursor = r;
-                        if (x > p2NodeX + 40) {
-                            if (state.p2.inputs[r] > 0) { state.p2.inputs[r]--; state.p2.pulses++; AudioSys.play('remove'); } else AudioSys.play('error');
-                        } else {
-                            if (state.p2.pulses > 0) { state.p2.inputs[r]++; state.p2.pulses--; AudioSys.play('place'); } else AudioSys.play('error');
-                        }
-                        updateUI();
-                    }
-                }
+                activePointers[e.pointerId] = { startX: x, startY: y, r: r, handledSwipe: false };
             }
         });
+        canvas.addEventListener('pointermove', (e) => {
+            if (state.phase !== 'placing' || !activePointers[e.pointerId]) return;
+            let p = activePointers[e.pointerId];
+            if (p.handledSwipe) return;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const x = (e.clientX - rect.left) * scaleX;
+            const dx = x - p.startX;
+            if (Math.abs(dx) > 30) {
+                p.handledSwipe = true;
+                if (p.startX < canvas.width / 2) {
+                    state.p1.cursor = p.r;
+                    if (dx < 0) {
+                        if (state.p1.inputs[p.r] > 0) { state.p1.inputs[p.r]--; state.p1.pulses++; AudioSys.play('remove'); } else AudioSys.play('error');
+                    }
+                } else if (state.gameMode === 'pvp') {
+                    state.p2.cursor = p.r;
+                    if (dx > 0) {
+                        if (state.p2.inputs[p.r] > 0) { state.p2.inputs[p.r]--; state.p2.pulses++; AudioSys.play('remove'); } else AudioSys.play('error');
+                    }
+                }
+                updateUI();
+            }
+        });
+        canvas.addEventListener('pointerup', (e) => {
+            if (state.phase !== 'placing' || !activePointers[e.pointerId]) return;
+            let p = activePointers[e.pointerId];
+            if (!p.handledSwipe) {
+                if (p.startX < canvas.width / 2) {
+                    state.p1.cursor = p.r;
+                    if (state.p1.pulses > 0) { state.p1.inputs[p.r]++; state.p1.pulses--; AudioSys.play('place'); } else AudioSys.play('error');
+                } else if (state.gameMode === 'pvp') {
+                    state.p2.cursor = p.r;
+                    if (state.p2.pulses > 0) { state.p2.inputs[p.r]++; state.p2.pulses--; AudioSys.play('place'); } else AudioSys.play('error');
+                }
+                updateUI();
+            }
+            delete activePointers[e.pointerId];
+        });
+        canvas.addEventListener('pointercancel', (e) => delete activePointers[e.pointerId]);
 
         /**
          * Game Loop & Logic
@@ -1233,10 +1251,17 @@
                 let drawInputStack = (c, count, color, direction) => {
                     let x = CONFIG.offsetX + c * CONFIG.cellSizeX;
                     ctx.fillStyle = CONFIG.colors.line; ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.fill();
+                    let isMobile = window.innerWidth < 768;
                     for (let i = 0; i < count; i++) {
                         ctx.fillStyle = color; ctx.shadowBlur = (10) * GLOW; ctx.shadowColor = color;
-                        let offset = direction === 1 ? -15 - (i * 10) : 15 + (i * 10);
-                        ctx.beginPath(); ctx.arc(x + offset, y, 4, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = (0) * GLOW;
+                        if (isMobile) {
+                            let offsetX = direction === 1 ? (i * 12) : -(i * 12);
+                            ctx.beginPath(); ctx.arc(x + offsetX, y - 8, 4, 0, Math.PI * 2); ctx.fill();
+                        } else {
+                            let offset = direction === 1 ? -15 - (i * 10) : 15 + (i * 10);
+                            ctx.beginPath(); ctx.arc(x + offset, y, 4, 0, Math.PI * 2); ctx.fill();
+                        }
+                        ctx.shadowBlur = (0) * GLOW;
                     }
                 };
 
