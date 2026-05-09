@@ -369,6 +369,29 @@
             lastWinColor: ""
         };
 
+        function resizeCanvas() {
+            let cw = canvas.parentElement.clientWidth;
+            let ch = canvas.parentElement.clientHeight;
+            if (cw === 0 || ch === 0) return;
+            if (window.innerWidth < 768 && window.innerHeight > window.innerWidth) {
+                canvas.width = cw;
+                canvas.height = ch;
+                CONFIG.cellSizeX = cw / (CONFIG.cols + 1.2);
+                CONFIG.cellSizeY = ch / (CONFIG.rows + 1);
+                CONFIG.offsetX = CONFIG.cellSizeX * 1.1;
+                CONFIG.offsetY = CONFIG.cellSizeY * 0.8;
+            } else {
+                canvas.width = 1250;
+                canvas.height = 720;
+                CONFIG.cellSizeX = 75;
+                CONFIG.cellSizeY = 60;
+                CONFIG.offsetX = 100;
+                CONFIG.offsetY = 60;
+            }
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
         /**
          * Initialization & Generation (Fair Pool-based Generation)
          */
@@ -1040,7 +1063,7 @@
                 else if (overall2 > overall1) { state.lastWinTitle = "SPIELER 2 IST DER CHAMPION!"; state.lastWinColor = CONFIG.colors.p2; }
                 else { state.lastWinTitle = "DAS DUELL ENDET UNENTSCHIEDEN!"; state.lastWinColor = "#ffffff"; }
                 
-                document.getElementById('ui-status').innerHTML = "SYSTEM KONTROLLIERT<div class='absolute top-full left-1/2 -translate-x-1/2 mt-2 md:mt-4 z-50 flex flex-col md:flex-row gap-1 md:gap-4'><button onclick='showMainMenu()' class='px-2 py-1 md:px-6 md:py-3 text-[9px] md:text-xl text-black bg-white hover:bg-yellow-400 rounded-lg font-bold transition-colors cursor-pointer pointer-events-auto whitespace-nowrap shadow-[0_0_20px_rgba(255,255,255,0.5)]'>ZUM HAUPTMENÜ</button><button onclick='handleNextRound()' class='px-2 py-1 md:px-6 md:py-3 text-[9px] md:text-xl text-white border-2 border-cyan-400 bg-cyan-900 hover:bg-cyan-400 hover:text-black rounded-lg font-bold transition-colors cursor-pointer pointer-events-auto whitespace-nowrap shadow-[0_0_15px_rgba(0,255,255,0.4)]'>ENDLOS-MODUS</button></div>";
+                document.getElementById('ui-status').innerHTML = "<div class='flex flex-row gap-1 md:gap-4 justify-center items-center w-full'><button onclick='showMainMenu()' class='px-2 py-1 md:px-6 md:py-2 text-[10px] md:text-lg text-black bg-white hover:bg-yellow-400 rounded font-bold transition-colors cursor-pointer shadow-[0_0_10px_rgba(255,255,255,0.5)]'>HAUPTMENÜ</button><button onclick='handleNextRound()' class='px-2 py-1 md:px-6 md:py-2 text-[10px] md:text-lg text-white border border-cyan-400 bg-cyan-900 hover:bg-cyan-400 hover:text-black rounded font-bold transition-colors cursor-pointer shadow-[0_0_10px_rgba(0,255,255,0.4)]'>ENDLOS-MODUS</button></div>";
                 document.getElementById('ui-status').className = "relative text-sm md:text-xl text-green-400 font-bold bg-gray-900 px-2 py-1 md:px-6 md:py-2 rounded-lg border border-green-600 shadow-[0_0_15px_rgba(0,255,0,0.5)] text-center leading-tight z-50 pointer-events-auto";
             } else {
                 if (score1 > score2) {
@@ -1054,7 +1077,7 @@
                     state.lastWinColor = "#ffffff";
                 }
 
-                document.getElementById('ui-status').innerHTML = "VERBINDUNG GETRENNT<div class='absolute top-full left-1/2 -translate-x-1/2 mt-2 md:mt-4 z-50 flex flex-col md:flex-row gap-1 md:gap-4'><button onclick='replayLevel()' class='px-2 py-1 md:px-6 md:py-3 text-[9px] md:text-xl text-white border-2 border-cyan-400 bg-cyan-900 hover:bg-cyan-400 hover:text-black rounded-lg font-bold transition-colors cursor-pointer pointer-events-auto whitespace-nowrap shadow-[0_0_15px_rgba(0,255,255,0.4)]'>NOCHMAL SPIELEN</button><button onclick='handleNextRound()' class='px-2 py-1 md:px-6 md:py-3 text-[9px] md:text-xl text-black bg-white hover:bg-yellow-400 rounded-lg font-bold transition-colors cursor-pointer pointer-events-auto whitespace-nowrap shadow-[0_0_20px_rgba(255,255,255,0.5)]'>NÄCHSTES LEVEL</button></div>";
+                document.getElementById('ui-status').innerHTML = "<div class='flex flex-row gap-1 md:gap-4 justify-center items-center w-full'><button onclick='replayLevel()' class='px-2 py-1 md:px-6 md:py-2 text-[10px] md:text-lg text-white border border-cyan-400 bg-cyan-900 hover:bg-cyan-400 hover:text-black rounded font-bold transition-colors cursor-pointer shadow-[0_0_10px_rgba(0,255,255,0.4)]'>NOCHMAL</button><button onclick='handleNextRound()' class='px-2 py-1 md:px-6 md:py-2 text-[10px] md:text-lg text-black bg-white hover:bg-yellow-400 rounded font-bold transition-colors cursor-pointer shadow-[0_0_10px_rgba(255,255,255,0.5)]'>NÄCHSTES LEVEL</button></div>";
                 document.getElementById('ui-status').className = "relative text-sm md:text-xl text-gray-400 font-bold bg-gray-900 px-2 py-1 md:px-6 md:py-2 rounded-lg border border-gray-600 shadow-none text-center leading-tight z-50 pointer-events-auto";
             }
 
