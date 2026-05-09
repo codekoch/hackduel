@@ -134,11 +134,13 @@
             <div id="ui-round-display"
                 class="text-[10px] md:text-sm text-yellow-500 mb-1 md:mb-2 font-bold tracking-widest">LEVEL <span
                     id="ui-round">1</span></div>
-            <div id="ui-status"
-                class="relative text-xs md:text-xl text-yellow-400 font-bold bg-gray-900 px-2 py-1 md:px-6 md:py-2 rounded-lg border border-yellow-600 shadow-[0_0_15px_rgba(255,200,0,0.3)] text-center leading-tight">
-                SYSTEM BEREIT
+            <div class="h-10 md:h-16 flex items-center justify-center w-full">
+                <div id="ui-status"
+                    class="relative text-xs md:text-xl text-yellow-400 font-bold bg-gray-900 px-2 py-1 md:px-6 md:py-2 rounded-lg border border-yellow-600 shadow-[0_0_15px_rgba(255,200,0,0.3)] text-center leading-tight">
+                    SYSTEM BEREIT
+                </div>
             </div>
-            <div id="ui-timer" class="text-2xl md:text-4xl mt-1 md:mt-3 glow-text-neutral hidden">15.0</div>
+            <div id="ui-timer" class="text-2xl md:text-4xl mt-1 md:mt-3 glow-text-neutral invisible">15.0</div>
         </div>
 
         <div class="flex flex-col items-end w-[30%] text-right">
@@ -657,7 +659,7 @@
 
             initBoard();
 
-            document.getElementById('ui-timer').classList.remove('hidden');
+            document.getElementById('ui-timer').classList.remove('invisible');
 
             AudioSys.init();
             AudioSys.play('start');
@@ -1072,7 +1074,7 @@
             state.p1.totalScore += score1;
             state.p2.totalScore += score2;
 
-            document.getElementById('ui-timer').classList.add('hidden');
+            document.getElementById('ui-timer').classList.add('invisible');
 
             if (state.roundCount === 10) {
                 let overall1 = state.p1.totalScore;
@@ -1321,13 +1323,15 @@
 
             if (state.phase === 'end' && state.lastWinTitle) {
                 ctx.fillStyle = state.lastWinColor;
-                let fontSize = Math.min(36, canvas.width / (state.lastWinTitle.length * 0.65));
+                let lastY = CONFIG.offsetY + (CONFIG.rows - 1) * CONFIG.cellSizeY;
+                let availH = Math.max(20, canvas.height - lastY);
+                let fontSize = Math.min(36, canvas.width / (state.lastWinTitle.length * 0.65), availH * 0.6);
                 ctx.font = `bold ${fontSize}px Share Tech Mono`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.shadowBlur = (10) * GLOW;
                 ctx.shadowColor = state.lastWinColor;
-                let textY = Math.max(fontSize, canvas.height * 0.1);
+                let textY = lastY + availH / 2;
                 ctx.fillText(state.lastWinTitle, canvas.width / 2, textY);
                 ctx.shadowBlur = (0) * GLOW;
             }
