@@ -121,8 +121,8 @@
     </div>
 
     <!-- Game Canvas Container -->
-    <div class="relative z-10 w-full flex-1 min-h-0 flex justify-center items-center px-2 py-2">
-        <canvas id="gameCanvas" width="1250" height="720" class="max-w-full max-h-full object-contain"></canvas>
+    <div class="relative z-10 w-full flex-1 min-h-0 flex justify-center items-center p-0 md:px-2 md:py-2">
+        <canvas id="gameCanvas" width="1250" height="720" class="w-full h-full max-w-full max-h-full md:w-auto md:h-auto md:object-contain"></canvas>
 
         <!-- Tutorial Screen -->
         <div id="tutorial-msg"
@@ -135,6 +135,16 @@
 
         <!-- End Game Overlay Removed -->
     </div>
+
+    <!-- Fullscreen Toggle Button -->
+    <button id="fullscreen-btn" onclick="toggleFullscreen()" class="absolute bottom-2 right-2 md:bottom-4 md:right-4 z-50 p-2 md:p-3 bg-gray-900/80 hover:bg-gray-800 border-2 border-cyan-800 rounded-lg text-cyan-400 hover:text-cyan-200 transition-colors shadow-[0_0_10px_rgba(0,255,255,0.2)]">
+        <svg id="fs-icon-enter" class="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4"/>
+        </svg>
+        <svg id="fs-icon-exit" class="w-5 h-5 md:w-6 md:h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 4v4H4M16 4v4h4M8 20v-4H4M16 20v-4h4"/>
+        </svg>
+    </button>
 
     <script>
         /**
@@ -152,6 +162,44 @@
             }
             lastTouchEnd = now;
         }, { passive: false });
+
+        /**
+         * Fullscreen Logic
+         */
+        function toggleFullscreen() {
+            let doc = window.document;
+            let docEl = doc.documentElement;
+
+            let requestFullScreen = docEl.requestFullscreen || docEl.webkitRequestFullScreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+            let cancelFullScreen = doc.exitFullscreen || doc.webkitExitFullscreen || doc.mozCancelFullScreen || doc.msExitFullscreen;
+
+            if (!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
+                if (requestFullScreen) {
+                    let promise = requestFullScreen.call(docEl);
+                    if (promise) promise.catch(err => console.log(err));
+                }
+            } else {
+                if (cancelFullScreen) {
+                    cancelFullScreen.call(doc);
+                }
+            }
+        }
+
+        function updateFsIcon() {
+            let isFs = document.fullscreenElement || document.mozFullScreenElement || document.webkitFullscreenElement || document.msFullscreenElement;
+            if (isFs) {
+                document.getElementById('fs-icon-enter').classList.add('hidden');
+                document.getElementById('fs-icon-exit').classList.remove('hidden');
+            } else {
+                document.getElementById('fs-icon-enter').classList.remove('hidden');
+                document.getElementById('fs-icon-exit').classList.add('hidden');
+            }
+        }
+
+        document.addEventListener('fullscreenchange', updateFsIcon);
+        document.addEventListener('webkitfullscreenchange', updateFsIcon);
+        document.addEventListener('mozfullscreenchange', updateFsIcon);
+        document.addEventListener('MSFullscreenChange', updateFsIcon);
 
 
         /**
